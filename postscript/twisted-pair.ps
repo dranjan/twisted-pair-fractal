@@ -17,7 +17,7 @@ stddefs
 
 /I [1 0 0 0 0 0 1 0] def
 
-% x0 y0 width set_roi_from_width  -
+% x0 y0 width set-roi-from-width  -
 %
 % Define the viewable window in the complex plane with given center and
 % width.
@@ -50,7 +50,7 @@ stddefs
 %    The code below may assume these definitions.
 %
 % 3. In addition, the ROI will be filled with black.
-/set_roi_from_width {
+/set-roi-from-width {
     13 dict begin
         /w exch def
         /y0 exch def
@@ -175,7 +175,7 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 /d [R a R C r A r] tp.word def
 /D d tp.inv def
 
-/scale_from_trace {
+/scale-from-trace {
     % u = (1/2 * (t + sqrt(t*t - 4)))^2
     2 copy 2 copy cmul 4 0 csub csqrt cadd 0.5 0 cmul
     2 copy cmul
@@ -206,11 +206,11 @@ s0 R tp.mobv apply_mobv /s2 cdef
 
 % Obviously this isn't in the group. It just makes the image more symmetric.
 c tp.mobv mobv_fixed_points
-c tp.mobv mobv_trace scale_from_trace csqrt cneg csqrt 2 copy 1 0 4 2 roll cdiv cadd
+c tp.mobv mobv_trace scale-from-trace csqrt cneg csqrt 2 copy 1 0 4 2 roll cdiv cadd
 mnt /c0.5 exch def
 /q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
 
-a tp.mobv mobv_trace scale_from_trace csqrt2 csqrt2 /sc cdef
+a tp.mobv mobv_trace scale-from-trace csqrt2 csqrt2 /sc cdef
 
 % Node format:
 %   [
@@ -280,23 +280,23 @@ a tp.mobv mobv_trace scale_from_trace csqrt2 csqrt2 /sc cdef
 } bind def
 
 /rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg] mobv_from_points mobv_normalize def
-/tri_test_transform rv mobv_inv def
+/tri-test-transform rv mobv_inv def
 
-/tri_test_points [
+/tri-test-points [
     1 dict begin
-        /t tri_test_transform mobv_inv def
+        /t tri-test-transform mobv_inv def
         r0 t apply_mobv
         r1 t apply_mobv
         r2 t apply_mobv
     end
 ] def
 
-/tri_test_disks [
-    0 0 1.1 disk.centered tri_test_transform disk.transform
+/tri-test-disks [
+    0 0 1.1 disk.centered tri-test-transform disk.transform
 ] def
 
-/tri_in_bbox {
-    tri_test_points tri_test_disks test-points-disks
+/tri-in-bbox {
+    tri-test-points tri-test-disks test-points-disks
 } bind def
 
 r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
@@ -304,8 +304,8 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
     sc3 3 -1 roll mobv_deriv cnorm sqrt
 } bind def
 
-/tri-proc {
-    %(tri-proc) == flush
+/tri-test {
+    %(tri-test) == flush
     7 dict begin
         aload pop
         /v exch def
@@ -317,7 +317,7 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
         % If things start disappearing from near the edges of
         % the image, this is a likely culprit.
         s 4 mul bw ge {
-            t tri_in_bbox
+            t tri-in-bbox
         } {
             bbox2 sc3 t apply_mobv bbox.contains
         } ifelse {
@@ -347,12 +347,12 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
 /hex-test-points [hex-center] def
 /hex-test-disks [hex-disk] def
 
-/hex_in_bbox {
+/hex-in-bbox {
     hex-test-points hex-test-disks test-points-disks
 } bind def
 
-/hex-proc {
-    %(hex-proc) == flush
+/hex-test {
+    %(hex-test) == flush
     4 dict begin
         aload pop
         /v exch def
@@ -361,7 +361,7 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
         /t exch def
         /s t hex-measure def
         s bw ge {
-            t hex_in_bbox
+            t hex-in-bbox
         } {
             bbox2 sc3 t apply_mobv bbox.contains
         } ifelse {
@@ -379,9 +379,9 @@ sc3 r tp.mobv apply_mobv /2Hsc0 cdef
 sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 
 /snake_t [R A C a r A r] tp.word tp.mobv def
-/snake_test_transform q snake_t mobv_inv mobv_mul mobv_inv def
+/snake-test-transform q snake_t mobv_inv mobv_mul mobv_inv def
 
-/snake_test_points [
+/snake-test-points [
     1 dict begin
         0 0
         r1 q apply_mobv
@@ -389,14 +389,14 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 ] def
 
-/snake_test_disks [
+/snake-test-disks [
     0 0 0.5 disk.centered rv mobv_inv disk.transform
     dup [R c R d d d] tp.word tp.mobv disk.transform
-    0 0 0.15 disk.centered snake_test_transform disk.transform
+    0 0 0.15 disk.centered snake-test-transform disk.transform
 ] def
 
-/snake_in_bbox {
-    snake_test_points snake_test_disks test-points-disks
+/snake-in-bbox {
+    snake-test-points snake-test-disks test-points-disks
 } bind def
 
 /snake-measure {
@@ -409,8 +409,8 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/snake-proc {
-    %(snake-proc) == flush
+/snake-test {
+    %(snake-test) == flush
     4 dict begin
         aload pop
         /v exch def
@@ -419,7 +419,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         /t exch def
         /s t snake-measure def
         s bw ge {
-            t snake_in_bbox
+            t snake-in-bbox
         } {
             true
         } ifelse {
@@ -431,7 +431,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     %(ok) == flush
 } bind def
 
-/snake|-proc {
+/snake|-test {
     aload pop pop pop
     1 dict begin
         aload pop pop  % permutation ignored here.
@@ -441,7 +441,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/tri|-proc {
+/tri|-test {
     1 dict begin
         aload pop pop pop
         aload pop pop  % permutation ignored here.
@@ -524,6 +524,8 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
+/flip0 [R c R] tp.word def
+
 /color-update0 {} bind def
 
 /color-update1 {
@@ -545,11 +547,9 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 
         tp
 
-        P1 tp tp.mul tri-color-delta
-        P2 tp tp.mul tri-color-delta
-        vadd 0.5 vscale
+        flip0 tp tp.mul tri-color-delta
         tp tri-color-delta
-        vadd
+        vadd 0.5 vscale
         c vadd
 
         v
@@ -576,46 +576,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/flip0 [R c R] tp.word def
-
 /color-update4 {
-    3 dict begin
-        /v exch def
-        /c exch def
-        /tp exch def
-
-        tp
-
-        flip0 tp tp.mul tri-color-delta
-        tp tri-color-delta
-        vadd 0.5 vscale
-        c vadd
-
-        v
-    end
-} bind def
-
-/color-update5 {
-    4 dict begin
-        /v exch def
-        /c exch def
-        /tp exch def
-        /tp' P1 tp tp.mul def
-
-        tp
-
-        tp' tri-color-delta
-        flip0 tp' tp.mul tri-color-delta
-        tp tri-color-delta
-        flip0 tp tp.mul tri-color-delta
-        vadd vadd vadd 0.5 vscale
-        c vadd
-
-        v
-    end
-} bind def
-
-/color-update6 {
     3 dict begin
         /v exch def
         /c exch def
@@ -634,7 +595,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/node_proc0 {
+/node-proc0 {
     3 dict begin
         /color-accum exch def
         /dv exch def
@@ -652,14 +613,14 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/node_def {
+/def-node {
     aload pop
     2 dict begin
         [/proc /edges] vdef
         [
             /proc load cvx
             [edges {
-                 [exch aload pop node_proc0]
+                 [exch aload pop node-proc0]
              } forall]
         ]
     end
@@ -667,17 +628,17 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 } bind def
 
 /tri [
-    /tri-proc cvx
+    /tri-test cvx
     [
         [/tri [p0] 0 /color-update1]
         [/tri [p1] 0 /color-update1]
         [/tri [p2] 0 /color-update1]
         [/hex [] 1 /color-update0]
     ]
-] node_def
+] def-node
 
 /hex [
-    /hex-proc cvx
+    /hex-test cvx
     [
         [/4snake [d] 1 /color-update1]
         [/4snake [d r] 1 /color-update1]
@@ -688,19 +649,19 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         [/tri [p1 d r] 0 /color-update1]
         [/tri [p0 d] 0 /color-update3]
 
-        [/tri| [R c p1] 0 /color-update4]
-        [/tri| [R c r p2] 0 /color-update4]
-        [/tri| [R c R p0] 0 /color-update4]
+        [/tri| [R c p1] 0 /color-update2]
+        [/tri| [R c r p2] 0 /color-update2]
+        [/tri| [R c R p0] 0 /color-update2]
 
         % XXX Is this color update really correct?
         [/snake| [6{d}repeat 4{B}repeat r d] 5 /color-update0]
         [/snake| [6{d}repeat 4{B}repeat r d R] 5 /color-update0]
         [/snake| [6{d}repeat 4{B}repeat r d r] 5 /color-update0]
     ]
-] node_def
+] def-node
 
 /4snake [
-    /hex-proc cvx
+    /hex-test cvx
     [
         [/snake [] 0 /color-update0]
         [/snake [B d] 1 /color-update0]
@@ -711,44 +672,44 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         [/snake| [B B d d] 1 /color-update0]
         [/snake| [B B B d d d] 2 /color-update0]
 
-        [/tri| [R c p1] 0 /color-update4]
-        [/tri| [R c r p2] 0 /color-update4]
-        [/tri| [R c R p0] 0 /color-update4]
+        [/tri| [R c p1] 0 /color-update2]
+        [/tri| [R c r p2] 0 /color-update2]
+        [/tri| [R c R p0] 0 /color-update2]
     ]
-] node_def
+] def-node
 
 /snake [
-    /snake-proc cvx
+    /snake-test cvx
     [
-        [/tri [p0 d] 0 /color-update6]
-        [/tri [p1 d R] 0 /color-update6]
+        [/tri [p0 d] 0 /color-update4]
+        [/tri [p1 d R] 0 /color-update4]
         [/virtual-tri [r d r] 0 /color-update1]
         [/virtual-tri [R d R] 0 /color-update1]
 
         [/snake+-virtual-tri [R d R] 1 /color-update1]
         [/snake++-virtual-tri [r d r] 1 /color-update1]
     ]
-] node_def
+] def-node
 
 /tri| [
-    /tri|-proc cvx
+    /tri|-test cvx
     [
         [/tri| [p2] 0 /color-update1]
         [/tri| [p1] 0 /color-update1]
 
         [/snake++-virtual-tri2 [d] 1 /color-update1]
     ]
-] node_def
+] def-node
 
 /snake| [
-    /snake|-proc cvx
+    /snake|-test cvx
     [
         [/tri| [R c P2 p1] 1 /color-update1]
         [/tri| [R c p1 r] 1 /color-update1]
 
-        [/snake++-virtual-tri [d r] 1 /color-update4]
+        [/snake++-virtual-tri [d r] 1 /color-update2]
     ]
-] node_def
+] def-node
 
 % This "virtual" /tri node with one corner and a middle is separated from /snake
 % for the sake of color computation.
@@ -758,51 +719,51 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         [/tri [p0] 0 /color-update1]
         [/hex [] 1 /color-update0]
     ]
-] node_def
+] def-node
 
 /snake++-virtual-tri [
     {pop true}
     [
         [/snake++-virtual-tri2 [d] 1 /color-update1]
     ]
-] node_def
+] def-node
 
 /snake++-virtual-tri2 [
     {pop true}
     [
         [/snake++ [4{d}repeat 4{B}repeat] 4 /color-update0]
     ]
-] node_def
+] def-node
 
 /snake+-virtual-tri [
     {pop true}
     [
         [/snake+-virtual-tri2 [d] 1 /color-update1]
     ]
-] node_def
+] def-node
 
 /snake+-virtual-tri2 [
     {pop true}
     [
         [/snake+ [4{d}repeat 4{B}repeat] 4 /color-update0]
     ]
-] node_def
+] def-node
 
 /snake++ [
-    /snake-proc cvx
+    /snake-test cvx
     [
         [/snake+ [] 0 /color-update0]
         [/snake| [R c R d d d] 0 /color-update0]
     ]
-] node_def
+] def-node
 
 /snake+ [
-    /snake-proc cvx
+    /snake-test cvx
     [
         [/snake [] 0 /color-update0]
         [/snake| [] 0 /color-update0]
     ]
-] node_def
+] def-node
 
 /13snake [
     {pop true}
@@ -834,9 +795,9 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         [/snake| [b b b D D D D D] 5 /color-update0]
         [/snake| [b b b b D D D D D D] 6 /color-update0]
     ]
-] node_def
+] def-node
 
-/process_one_node {
+/process-one-node {
     3 dict begin
         /state exch def
         %dup ==
@@ -852,7 +813,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/graph_recurse {
+/graph-recurse {
     2 dict begin
         % The graph callbacks can use this threshold value.
         /threshold 72 factor div DEVICEXRESOLUTION div res mul def
@@ -860,7 +821,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         mark 3 1 roll
         {
             dup mark eq {exit} if
-            process_one_node
+            process-one-node
             /calls calls 1 add def
             calls 100000 mod 0 eq {
                 calls = flush
@@ -871,7 +832,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     end
 } bind def
 
-/draw_point {
+/draw-point {
     newpath
     1 dict begin
         /pointrad 0.5 factor div def
@@ -887,7 +848,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 % For debugging: to highlight a specific point
 /show {
     1 0 0 setrgbcolor
-    view tp.mobv apply_mobv draw_point
+    view tp.mobv apply_mobv draw-point
 } bind def
 
 /res 1 setdefault
@@ -913,10 +874,10 @@ def
 %/width height 16 9 div mul def
 /width 4 def
 
-x0 y0 width set_roi_from_width
+x0 y0 width set-roi-from-width
 
 %/colors [17{[1 1 1]}repeat] def
-/13snake [view [0 0 0] 0] graph_recurse
+/13snake [view [0 0 0] 0] graph-recurse
 
 [/maxc maxc] ==
 [/maxc-ratio maxc maxc-factor div] ==
