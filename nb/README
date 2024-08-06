@@ -1,0 +1,9 @@
+You will need:
+
+- SageMath (from OS package manager)
+- JupyterLab (`pip install jupyterlab`)
+- Jupytext (`pip install jupytext`)
+- Make
+
+Run `make` in this directory, and you should then
+be able to run `jupyter lab` and open `TwistedPair.ipynb`.
