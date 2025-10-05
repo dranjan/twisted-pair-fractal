@@ -47,18 +47,3 @@
     circle
     end
 } bind def
-
-% the unit circle
-/unit_circle [0 0 1] def
-
-% an internal variable for the next function
-% to avoid creating excess arrays
-/static_array_0 [1 0  -1 0  0 1] def
-
-% [x0 y0  x1 y1  x2 y2] circle_from_points  [x y r]
-% defines a circle by specifying three points it passes through.
-% requires the moebius module.
-/circle_from_points {
-    static_array_0 mobv_from_points mobv_inv
-    unit_circle exch apply_mobv_to_circle
-} bind def
