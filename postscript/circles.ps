@@ -14,36 +14,3 @@
 /getx { aload pop pop pop } bind def
 /gety { aload pop 3 -1 roll pop pop } bind def
 /getr { aload pop 3 1 roll pop pop } bind def
-/getc { aload pop pop } bind def
-
-% C render_circle -> - 
-% to draw a circle
-/render_circle {
-    dup getx 1 index getr add 1 index gety moveto
-    aload pop 0 360 arc closepath
-} bind def
-
-% cR cA invert cB
-% cB is the inversion of cA about cR.
-/invert {
-    %countdictstack ==
-    3 dict begin
-    /cA exch def
-    /cR exch def
-    %cA == cR ==
-    /alpha
-        cR getr dup mul
-        cA getx cR getx sub dup mul
-        cA gety cR gety sub dup mul
-        cA getr dup mul
-    sub add div
-    def
-
-    %alpha ==
-    
-        cR getx alpha cA getx cR getx sub mul add
-        cR gety alpha cA gety cR gety sub mul add
-        cA getr alpha mul
-    circle
-    end
-} bind def
