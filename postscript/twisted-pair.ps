@@ -104,10 +104,10 @@
 /rho_y -0.03490851803492841 def
 
 % Fundamental parameter
-rho_x 2 add rho_y csqrt2 cneg rho_x 2 sub rho_y csqrt2 cneg cadd 2 0 cdiv
+rho_x 2 add rho_y csqrt cneg rho_x 2 sub rho_y csqrt cneg cadd 2 0 cdiv
 /beta cdef
 
-beta n cpow2 /t cdef
+beta n cpow /t cdef
 t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 
 % Group structure.
@@ -202,7 +202,7 @@ c tp.mobv mobv_trace scale-from-trace csqrt-var cneg csqrt-var 2 copy 1 0 4 2 ro
 mobv_from_nodes_and_trace /c0.5 exch def
 /q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
 
-a tp.mobv mobv_trace scale-from-trace csqrt2 csqrt2 /sc cdef
+a tp.mobv mobv_trace scale-from-trace csqrt csqrt /sc cdef
 
 % Node format:
 %   [
