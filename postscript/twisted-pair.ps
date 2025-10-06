@@ -198,7 +198,7 @@ s0 R tp.mobv apply_mobv /s2 cdef
 
 % Obviously this isn't in the group. It just makes the image more symmetric.
 c tp.mobv mobv_fixed_points
-c tp.mobv mobv_trace scale-from-trace csqrt-var cneg csqrt-var 2 copy 1 0 4 2 roll cdiv cadd
+c tp.mobv mobv_trace scale-from-trace csqrt-var csqrt 0 1 cmul 2 copy 1 0 4 2 roll cdiv cadd
 mobv_from_nodes_and_trace /c0.5 exch def
 /q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
 
