@@ -169,6 +169,8 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 
 /scale-from-trace {
     % u = (1/2 * (t + sqrt(t*t - 4)))^2
+    % There is a branch cut for real t with |t| >= 2, i.e.,
+    % hyperbolic transformations.
     2 copy 2 copy cmul 4 0 csub csqrt-var cadd 0.5 0 cmul
     2 copy cmul
 } def
