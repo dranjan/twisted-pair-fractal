@@ -61,7 +61,7 @@
 /mobv_normalize {
     2 dict begin
     /v exch def
-    v mobv_det csqrt /sdy exch def /sdx exch def
+    v mobv_det csqrt-var /sdy exch def /sdx exch def
 
     [v 0 get v 1 get sdx sdy cdiv v 2 get v 3 get sdx sdy cdiv
     v 4 get v 5 get sdx sdy cdiv v 6 get v 7 get sdx sdy cdiv]
@@ -186,7 +186,7 @@
     v 0 get v 1 get v 6 get v 7 get csub
     v 0 get v 1 get v 6 get v 7 get cadd 2 copy cmul
         d_x d_y 4 0 cmul csub
-    csqrt
+    csqrt-var
     4 copy cadd v 4 get v 5 get 2 0 cmul cdiv
     6 2 roll csub v 4 get v 5 get 2 0 cmul cdiv
     end
@@ -205,7 +205,7 @@
     /wy exch def /wx exch def
     /zy exch def /zx exch def
 
-    tx ty 2 copy cmul 4 0 csub csqrt
+    tx ty 2 copy cmul 4 0 csub csqrt-var
     zx zy wx wy csub cdiv
     /cy exch def /cx exch def
 

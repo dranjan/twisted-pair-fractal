@@ -107,7 +107,7 @@
 rho_x 2 add rho_y csqrt2 cneg rho_x 2 sub rho_y csqrt2 cneg cadd 2 0 cdiv
 /beta cdef
 
-beta n cpow /t cdef
+beta n cpow2 /t cdef
 t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 
 % Group structure.
@@ -169,7 +169,7 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 
 /scale-from-trace {
     % u = (1/2 * (t + sqrt(t*t - 4)))^2
-    2 copy 2 copy cmul 4 0 csub csqrt cadd 0.5 0 cmul
+    2 copy 2 copy cmul 4 0 csub csqrt-var cadd 0.5 0 cmul
     2 copy cmul
 } def
 
@@ -198,7 +198,7 @@ s0 R tp.mobv apply_mobv /s2 cdef
 
 % Obviously this isn't in the group. It just makes the image more symmetric.
 c tp.mobv mobv_fixed_points
-c tp.mobv mobv_trace scale-from-trace csqrt cneg csqrt 2 copy 1 0 4 2 roll cdiv cadd
+c tp.mobv mobv_trace scale-from-trace csqrt-var cneg csqrt-var 2 copy 1 0 4 2 roll cdiv cadd
 mobv_from_nodes_and_trace /c0.5 exch def
 /q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
 

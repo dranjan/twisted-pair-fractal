@@ -53,37 +53,37 @@
     dup 3 1 roll div dup floor sub mul
 } bind def
 
-% x y n cpow -> (x + iy)^n
-% (good for integers n; well defined but with a branch cut
-% just below the positive real axis for other n)
-% TODO: this is buggy. This should be replaced by cpow2.
-/cpow {
+% x y n cpow2 -> (x + iy)^n
+% The branch cut is above the negative real axis.
+/cpow2 {
+    dup 4 2 roll
+    //to-polar exec  % r^n n theta
+    3 1 roll exch exp 3 1 roll 180 add 360 fmod 180 sub mul
+    //from-polar exec
+} bind def
+
+
+% x y csqrt2 -> sqrt(x + i y)
+% The branch cut is above the negative real axis.
+/csqrt2 {
+    0.5 //cpow2 exec
+} def
+
+% x y n cpow-var -> (x + iy)^n
+% The branch cut is below the positive real axis.
+% NOTE: it is not recommended to use this function. Use cpow2 instead.
+/cpow-var {
     dup 4 2 roll
     //to-polar exec
     3 1 roll exch exp 3 1 roll mul
     //from-polar exec
 } bind def
 
-% More correct cpow, temporarily under a new name, pending
-% refactoring.
-/cpow2 {
-    dup 4 2 roll
-    //to-polar exec
-    3 1 roll exch exp 3 1 roll 180 add 360 fmod 180 sub mul
-    //from-polar exec
-} bind def
-
-% x y csqrt -> sqrt(x + i y)
-% This is a synonym for 0.5 cpow.
-% TODO: this is buggy. This should be replaced by csqrt2.
-/csqrt {
-    0.5 //cpow exec
-} def
-
-% More correct csqrt, temporarily uner a new name, pending
-% refactoring.
-/csqrt2 {
-    0.5 //cpow2 exec
+% x y csqrt-var -> sqrt(x + i y)
+% The branch cut is below the positive real axis.
+% NOTE: it is not recommended to use this function. Use csqrt2 instead.
+/csqrt-var {
+    0.5 //cpow-var exec
 } def
 
 % x y cexp -> e^(x + i y)

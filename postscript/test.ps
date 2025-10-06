@@ -127,6 +127,14 @@
     [0 1 csqrt2] [0.5 sqrt 0.5 sqrt] all-near
 } run-test
 
+/test.csqrt-var.01 {
+    [0 -1 csqrt-var] [0.5 sqrt neg 0.5 sqrt] all-near
+} run-test
+
+/test.csqrt-var.02 {
+    [0 1 csqrt-var] [0.5 sqrt 0.5 sqrt] all-near
+} run-test
+
 /test.centered.01 {
     0 0 1 disk.centered /C exch def
     C disk.det -1 near check
