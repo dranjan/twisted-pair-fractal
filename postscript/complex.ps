@@ -18,7 +18,7 @@
     4 copy exch 4 1 roll mul 3 1 roll mul sub neg
     5 1 roll 4 1 roll mul 3 1 roll mul add
 } bind def
-/csub { neg exch neg exch //cadd exec } bind def
+/csub { neg exch neg exch cadd } bind def
 % complex conjugate and norm
 /conj { neg } bind def
 
@@ -26,15 +26,15 @@
 /cnorm { dup mul exch dup mul add } bind def
 % complex division
 /cinv {
-    neg 2 copy //cnorm exec
+    neg 2 copy cnorm
     dup 4 1 roll div 3 1 roll exch div exch } bind def
-/cdiv { //cinv exec //cmul exec } def
+/cdiv { cinv cmul } def
 /cneg { neg exch neg exch } bind def
 
 % x y to-polar -> r theta (in degrees)
 /to-polar {
     2 copy 0 eq exch 0 eq and not {
-        2 copy //cnorm exec sqrt 3 1 roll exch atan
+        2 copy cnorm sqrt 3 1 roll exch atan
     } if
 } bind def
 
@@ -57,33 +57,34 @@
 % The branch cut is above the negative real axis.
 /cpow {
     dup 4 2 roll
-    //to-polar exec
-    3 1 roll exch exp 3 1 roll 180 add 360 //fmod exec 180 sub mul
-    //from-polar exec
+    to-polar
+    3 1 roll exch exp 3 1 roll 180 add 360 fmod 180 sub mul
+    from-polar
 } bind def
 
 % x y csqrt -> sqrt(x + i y)
-% The branch cut is above the negative real axis.
+% The branch cut is above the negative real axis, and the result will
+% have a nonnegative real part.
 /csqrt {
-    0.5 //cpow exec
+    0.5 cpow
 } def
 
 % x y csqrt-var -> sqrt(x + i y)
-% The branch cut is below the positive real axis.
-% NOTE: it is not recommended to use this function. Use csqrt instead.
+% The branch cut is below the positive real axis, and the result will
+% have a nonnegative imaginary part.
 /csqrt-var {
-    //cneg exec //csqrt exec neg exch
+    cneg csqrt neg exch
 } bind def
 
 % x y cexp -> e^(x + i y)
 /cexp {
     exch 2.71828182845904524 exch exp exch 3.1415926536 div 180 mul
-    //from-polar exec
+    from-polar
 } bind def
 
 % x y clog -> log(x + i y)
 /clog {
-    //to-polar exec
+    to-polar
     dup 180 ge {360 sub} if
     180 div 3.1415926536 mul exch ln exch
 } bind def
@@ -97,7 +98,7 @@
 } bind def
 
 /cne {
-    //ceq exec not
+    ceq not
 } bind def
 
 % x y /z cdef = /z {x y} def
