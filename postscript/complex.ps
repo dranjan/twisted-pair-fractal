@@ -57,7 +57,7 @@
 % The branch cut is above the negative real axis.
 /cpow {
     dup 4 2 roll
-    //to-polar exec  % r^n n theta
+    //to-polar exec
     3 1 roll exch exp 3 1 roll 180 add 360 fmod 180 sub mul
     //from-polar exec
 } bind def
