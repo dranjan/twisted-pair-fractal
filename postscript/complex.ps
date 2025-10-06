@@ -25,20 +25,21 @@
 % x y cnorm -> x^2 + y^2
 /cnorm { dup mul exch dup mul add } bind def
 % complex division
-/cinv { neg 2 copy //cnorm exec
+/cinv {
+    neg 2 copy //cnorm exec
     dup 4 1 roll div 3 1 roll exch div exch } bind def
 /cdiv { //cinv exec //cmul exec } def
 /cneg { neg exch neg exch } bind def
 
-% x y to_polar -> r theta (in degrees)
-/to_polar {
+% x y to-polar -> r theta (in degrees)
+/to-polar {
     2 copy 0 eq exch 0 eq and not {
         2 copy //cnorm exec sqrt 3 1 roll exch atan
     } if
 } bind def
 
-% r theta (degrees) from_polar -> x y
-/from_polar {
+% r theta (degrees) from-polar -> x y
+/from-polar {
     exch dup 0 eq {
         pop pop 0 0
     } {
@@ -58,18 +59,18 @@
 % TODO: this is buggy. This should be replaced by cpow2.
 /cpow {
     dup 4 2 roll
-    //to_polar exec
+    //to-polar exec
     3 1 roll exch exp 3 1 roll mul
-    //from_polar exec
+    //from-polar exec
 } bind def
 
 % More correct cpow, temporarily under a new name, pending
 % refactoring.
 /cpow2 {
     dup 4 2 roll
-    //to_polar exec
+    //to-polar exec
     3 1 roll exch exp 3 1 roll 180 add 360 fmod 180 sub mul
-    //from_polar exec
+    //from-polar exec
 } bind def
 
 % x y csqrt -> sqrt(x + i y)
@@ -88,12 +89,12 @@
 % x y cexp -> e^(x + i y)
 /cexp {
     exch 2.71828182845904524 exch exp exch 3.1415926536 div 180 mul
-    //from_polar exec
+    //from-polar exec
 } bind def
 
 % x y clog -> log(x + i y)
 /clog {
-    //to_polar exec
+    //to-polar exec
     dup 180 ge {360 sub} if
     180 div 3.1415926536 mul exch ln exch
 } bind def

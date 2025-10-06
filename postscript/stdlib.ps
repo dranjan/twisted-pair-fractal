@@ -122,21 +122,21 @@
     4 1 roll mul 3 1 roll mul exch sub
 } bind def
 
-% x0 y0 x1 y1 x2 y2 triangle_area  =  area
+% x0 y0 x1 y1 x2 y2 triangle-area  =  area
 %
 % Compute the signed area of a triangle.
-/triangle_area {
+/triangle-area {
     6 dict begin
         {x0 y0 x1 y1 x2 y2} vdef
         x1 x0 sub y1 y0 sub x2 x0 sub y2 y0 sub cx 2 div
     end
 } bind def
 
-% x1 y1 x2 y2 x3 y3 x0 y0 curve_area_delta  =  area
+% x1 y1 x2 y2 x3 y3 x0 y0 curve-area-delta  =  area
 %
 % Compute the signed area of a curve segment with an implied
 % closepath.
-/curve_area_delta {
+/curve-area-delta {
     8 dict begin
         {x0 y0} vdef
         y0 sub /y3 exch def
@@ -169,15 +169,15 @@
         {
             % lineto callback
             2 copy
-            x0 y0 x y triangle_area /a' exch a' add def
+            x0 y0 x y triangle-area /a' exch a' add def
             {x y} vdef
         }
         {
             % curveto callback
             2 copy
-            x0 y0 x y triangle_area /a' exch a' add def
+            x0 y0 x y triangle-area /a' exch a' add def
             2 copy 8 2 roll
-            x y curve_area_delta /a' exch a' add def
+            x y curve-area-delta /a' exch a' add def
             {x y} vdef
         }
         {
