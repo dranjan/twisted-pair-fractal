@@ -3,7 +3,7 @@
 (stdlib.ps) run
 (permute.ps) run
 (complex.ps) run
-(moebius.ps) run
+(mobius.ps) run
 (disk.ps) run
 (roi.ps) run
 
@@ -114,36 +114,25 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 % Each transformation is a pair of (T, P) where T is a Mobius
 % transformation and P is a permutation on {0, ..., 16}.
 
-/tp.id [[1 0 0 0 0 0 1 0] 17 p_id] def
+/tp.id [mobt.id 17 perm.id] def
+
+/tp.mobt {0 get} bind def
+/tp.perm {1 get} bind def
 
 /tp.mul {
     2 dict begin
         /T1 exch def
         /T0 exch def
-        [T1 0 get T0 0 get mobv_mul T1 1 get T0 1 get p_mul]
+        [T0 tp.mobt T1 tp.mobt mobt.mul T1 tp.perm T0 tp.perm perm.mul]
     end
 } bind def
 
 /tp.inv {
-    [exch aload pop p_inv exch mobv_inv exch]
+    [exch aload pop perm.inv exch mobt.inv exch]
 } bind def
 
 /tp.word {
     tp.id exch aload length {tp.mul} repeat
-} bind def
-
-/tp.mobv {0 get} bind def
-/tp.perm {1 get} bind def
-
-/p_fixed_points {
-    [ exch
-     1 dict begin
-         dup length 1 sub 0 1 3 -1 roll {
-             /k exch def
-             dup k get k eq {k exch} if
-         } for
-         pop
-     end ]
 } bind def
 
 % Twisted Pair Group generators.
@@ -153,10 +142,6 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
 
 /R r tp.inv def
 /U u tp.inv def
-
-/mobv_word {
-    I exch aload length {exch mobv_mul} repeat
-} def
 
 /a [13{u}repeat] tp.word def
 /A a tp.inv def
@@ -175,13 +160,13 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
     2 copy cmul
 } def
 
-A tp.mobv mobv_attractor /r0 cdef
-r0 r tp.mobv apply_mobv /r1 cdef
-r0 R tp.mobv apply_mobv /r2 cdef
+A tp.mobt mobt.attractor /r0 cdef
+r0 r tp.mobt mobt.apply /r1 cdef
+r0 R tp.mobt mobt.apply /r2 cdef
 
-a tp.mobv mobv_attractor /s0 cdef
-s0 r tp.mobv apply_mobv /s1 cdef
-s0 R tp.mobv apply_mobv /s2 cdef
+a tp.mobt mobt.attractor /s0 cdef
+s0 r tp.mobt mobt.apply /s1 cdef
+s0 R tp.mobt mobt.apply /s2 cdef
 
 /p0 A def
 /p1 [R A r] tp.word def
@@ -192,19 +177,19 @@ s0 R tp.mobv apply_mobv /s2 cdef
 /P2 p2 tp.inv def
 
 % Involution (permutations discarded here)
-/nn [r A R a r A] tp.word tp.mobv def
+/nn [r A R a r A] tp.word tp.mobt def
 
 0 1 nn 6 get nn 7 get csub nn 4 get nn 5 get cdiv /z0 cdef
 0 -1 nn 6 get nn 7 get csub nn 4 get nn 5 get cdiv /z1 cdef
-/gmview [1 0 z0 cneg 1 0 z1 cneg] mobv_normalize def
+/gmview [1 0 z0 cneg 1 0 z1 cneg] mobt.normalize def
 
 % Obviously this isn't in the group. It just makes the image more symmetric.
-c tp.mobv mobv_fixed_points
-c tp.mobv mobv_trace scale-from-trace csqrt-var csqrt 0 1 cmul 2 copy 1 0 4 2 roll cdiv cadd
-mobv_from_nodes_and_trace /c0.5 exch def
-/q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
+c tp.mobt mobt.fixed-points
+c tp.mobt mobt.trace scale-from-trace csqrt-var csqrt 0 1 cmul 2 copy 1 0 4 2 roll cdiv cadd
+mobt.from-nodes-and-trace /c0.5 exch def
+/q [R tp.mobt c0.5 4{A tp.mobt}repeat 7{C tp.mobt}repeat gmview] mobt.word def
 
-a tp.mobv mobv_trace scale-from-trace csqrt csqrt /sc cdef
+a tp.mobt mobt.trace scale-from-trace csqrt csqrt /sc cdef
 
 % Node format:
 %   [
@@ -233,7 +218,7 @@ a tp.mobv mobv_trace scale-from-trace csqrt csqrt /sc cdef
         false
         0 2 points length 2 sub {
             points exch 2 getinterval aload pop bbox 6 -2 roll
-            T apply_mobv bbox.contains {
+            T mobt.apply bbox.contains {
                 pop true exit
             } if
         } for
@@ -273,15 +258,15 @@ a tp.mobv mobv_trace scale-from-trace csqrt csqrt /sc cdef
     end
 } bind def
 
-/rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg] mobv_from_points mobv_normalize def
-/tri-test-transform rv mobv_inv def
+/rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg] mobt.from-points mobt.normalize def
+/tri-test-transform rv mobt.inv def
 
 /tri-test-points [
     1 dict begin
-        /t tri-test-transform mobv_inv def
-        r0 t apply_mobv
-        r1 t apply_mobv
-        r2 t apply_mobv
+        /t tri-test-transform mobt.inv def
+        r0 t mobt.apply
+        r1 t mobt.apply
+        r2 t mobt.apply
     end
 ] def
 
@@ -293,9 +278,9 @@ a tp.mobv mobv_trace scale-from-trace csqrt csqrt /sc cdef
     tri-test-points tri-test-disks test-points-disks
 } bind def
 
-r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
+r tp.mobt mobt.fixed-points 4 2 roll pop pop /sc3 cdef
 /tri-measure {
-    sc3 3 -1 roll mobv_deriv cnorm sqrt
+    sc3 3 -1 roll mobt.deriv cnorm sqrt
 } bind def
 
 /tri-test {
@@ -313,14 +298,14 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
         s 4 mul bw ge {
             t tri-in-bbox
         } {
-            bbox2 sc3 t apply_mobv bbox.contains
+            bbox2 sc3 t mobt.apply bbox.contains
         } ifelse {
             s 3 mul threshold ge
             dup not {
                 c v set-rgb
-                r0 t apply_mobv /tr0 cdef
-                r1 t apply_mobv /tr1 cdef
-                r2 t apply_mobv /tr2 cdef
+                r0 t mobt.apply /tr0 cdef
+                r1 t mobt.apply /tr1 cdef
+                r2 t mobt.apply /tr2 cdef
                 tr0 moveto tr1 lineto tr2 lineto closepath fill
             } if
         } {
@@ -331,11 +316,11 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
 } bind def
 
 /hex-measure {
-    sc3 3 -1 roll mobv_deriv cnorm sqrt
+    sc3 3 -1 roll mobt.deriv cnorm sqrt
 } bind def
 
-/hex-disk 0 0 0.45 disk.centered rv mobv_inv disk.transform def
-0 0 rv mobv_inv apply_mobv /hex-center cdef
+/hex-disk 0 0 0.45 disk.centered rv mobt.inv disk.transform def
+0 0 rv mobt.inv mobt.apply /hex-center cdef
 
 /hex-test-points [hex-center] def
 /hex-test-disks [hex-disk] def
@@ -356,7 +341,7 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
         s bw ge {
             t hex-in-bbox
         } {
-            bbox2 sc3 t apply_mobv bbox.contains
+            bbox2 sc3 t mobt.apply bbox.contains
         } ifelse {
             s 0.75 mul threshold ge
         } {
@@ -366,25 +351,25 @@ r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
     %(ok) == flush
 } bind def
 
-r2 p1 tp.mobv apply_mobv /2He0 cdef
-r1 p2 tp.mobv apply_mobv /2He1 cdef
-sc3 r tp.mobv apply_mobv /2Hsc0 cdef
-sc3 R tp.mobv apply_mobv /2Hsc1 cdef
+r2 p1 tp.mobt mobt.apply /2He0 cdef
+r1 p2 tp.mobt mobt.apply /2He1 cdef
+sc3 r tp.mobt mobt.apply /2Hsc0 cdef
+sc3 R tp.mobt mobt.apply /2Hsc1 cdef
 
-/snake_t [R A C a r A r] tp.word tp.mobv def
-/snake-test-transform q snake_t mobv_inv mobv_mul mobv_inv def
+/snake_t [R A C a r A r] tp.word tp.mobt def
+/snake-test-transform snake_t mobt.inv q mobt.mul mobt.inv def
 
 /snake-test-points [
     1 dict begin
         0 0
-        r1 q apply_mobv
-        r2 [[a r A] tp.word tp.mobv q] mobv_word apply_mobv
+        r1 q mobt.apply
+        r2 [[a r A] tp.word tp.mobt q] mobt.word mobt.apply
     end
 ] def
 
 /snake-test-disks [
-    0 0 0.5 disk.centered rv mobv_inv disk.transform
-    dup [R c R d d d] tp.word tp.mobv disk.transform
+    0 0 0.5 disk.centered rv mobt.inv disk.transform
+    dup [R c R d d d] tp.word tp.mobt disk.transform
     0 0 0.15 disk.centered snake-test-transform disk.transform
 ] def
 
@@ -395,9 +380,9 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 /snake-measure {
     1 dict begin
         /t exch def
-        2Hsc0 t mobv_deriv cnorm sqrt 3 mul
-        2Hsc1 t mobv_deriv cnorm sqrt 3 mul
-        2He0 t apply_mobv 2He1 t apply_mobv csub cnorm sqrt
+        2Hsc0 t mobt.deriv cnorm sqrt 3 mul
+        2Hsc1 t mobt.deriv cnorm sqrt 3 mul
+        2He0 t mobt.apply 2He1 t mobt.apply csub cnorm sqrt
         max max
     end
 } bind def
@@ -429,7 +414,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     1 dict begin
         aload pop pop  % permutation ignored here.
         /t exch def
-        2He0 t apply_mobv 2He1 t apply_mobv csub cnorm sqrt
+        2He0 t mobt.apply 2He1 t mobt.apply csub cnorm sqrt
         threshold ge
     end
 } bind def
@@ -439,7 +424,7 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
         aload pop pop pop
         aload pop pop  % permutation ignored here.
         /t exch def
-        r1 t apply_mobv r2 t apply_mobv csub cnorm sqrt
+        r1 t mobt.apply r2 t mobt.apply csub cnorm sqrt
         threshold ge
     end
 } bind def
@@ -454,8 +439,8 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
     grestore
 ] def
 
-/cidx [8 0 5 15 12 6 10 2 9 13 7 4 14 16 1 3 11] p_inv def
-/colors colors cidx permute def
+/cidx [8 0 5 15 12 6 10 2 9 13 7 4 14 16 1 3 11] perm.inv def
+/colors colors cidx perm.apply def
 
 % [x{0} ... x{n-1}] [y{0} ... y{n-1}]  -->  [x{0} + y{0} ... x{n-1} + y{n-1}]
 /vadd {
@@ -841,18 +826,18 @@ sc3 R tp.mobv apply_mobv /2Hsc1 cdef
 % For debugging: to highlight a specific point
 /show {
     1 0 0 setrgbcolor
-    view tp.mobv apply_mobv draw-point
+    view tp.mobt mobt.apply draw-point
 } bind def
 
 /res 1 setdefault
 
-/view3 [rv 17 p_id] def
-/view2 [[snake_t mobv_inv q] mobv_word 17 p_id]
+/view3 [rv 17 perm.id] def
+/view2 [[snake_t mobt.inv q] mobt.word 17 perm.id]
 %[[1 0 0 0 0 0 1 0] [0 1 2 3 4 5 6 7 16 9 10 15 12 13 14 11 8]] tp.mul
 def
 /view2 view2
-[[1 0 b tp.mobv mobv_attractor view2 tp.mobv apply_mobv cdiv 0 0 0 0 1 0] mobv_normalize
- 17 p_id] tp.mul
+[[1 0 b tp.mobt mobt.attractor view2 tp.mobt mobt.apply cdiv 0 0 0 0 1 0] mobt.normalize
+ 17 perm.id] tp.mul
 def
 
 /view view2 def

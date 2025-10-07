@@ -1,0 +1,313 @@
+%!
+
+% Simple implementation of complex Mobius transformations, a.k.a.,
+% linear fractional transformations.
+
+% Depenedencies:
+% - complex.ps
+
+% Mobius transformations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% We use these conventions:
+%
+% - A Mobius transformation is represented by the matrix
+%
+%   [ v00 v01 ]
+%   [ v10 v11 ]
+%
+%   with complex entries.
+%
+%   This matrix represents the transformation
+%
+%   z  -->  (v00*z + v10)/(v01*z + v11)
+%
+% - The matrix is represented by a PostScript array of 8
+%   real numbers, which are the real and imaginary parts of
+%   the entries of the matrix in *column-major* order.
+%
+% Equivalently, we could define the transformation using the transpose
+% of the matrix shown above, and represent the matrix in the code in
+% row-major order. Then the whole implementation and almost all of the
+% math would be identical, *except* for composition of transformations
+% (mobt.mul), or else the order of the transformations would need to be
+% semantically reversed. This is a kind of subtle but important point.
+% With our chosen conventions, both groupings
+%
+%   x y T0 mobt.apply T1 mobt.apply
+%
+% and
+%
+%   x y T0 T1 mobt.mul mobt.apply
+%
+% which keep the same order of x, y, T0, and T1 on the stack give
+% the same mathematical result. In other words, because PostScript is
+% a concatenative language where operators apply on the right, we've
+% chosen also to make the group of Mobius transformations act on the
+% right.
+
+/mobt { [9 1 roll] } bind def
+
+/mobt.id {1 0  0 0  0 0  1 0 mobt} def
+
+% Getters for the 4 complex entries.
+/mobt.v00 { dup 0 get exch 1 get } bind def
+/mobt.v01 { dup 4 get exch 5 get } bind def
+/mobt.v10 { dup 2 get exch 3 get } bind def
+/mobt.v11 { dup 6 get exch 7 get } bind def
+
+% x y T mobt.apply  -->  T(x + i*y) (2 values)
+/mobt.apply {
+    1 dict begin
+        /T exch def
+        2 copy T mobt.v00 cmul T mobt.v10 cadd
+        4 2 roll T mobt.v01 cmul T mobt.v11 cadd
+        cdiv
+    end
+} bind def
+
+% T mobt.det  -->  det(T) (2 values)
+%
+% Compute the derivative of the matrix representation.
+/mobt.det {
+    1 dict begin
+        /T exch def
+        T mobt.v00 T mobt.v11 cmul
+        T mobt.v10 T mobt.v01 cmul
+        csub
+    end
+} bind def
+
+% T mobt.trace  -->  tr(T) (2 values)
+%
+% Compute the trace of the matrix representation.
+/mobt.trace {
+    1 dict begin
+        /T exch def
+        T mobt.v00 T mobt.v11 cadd
+    end
+} bind def
+
+% x y T mobt.deriv  -->  T'(x + i*y) (2 values)
+%
+% Compute the derivative of T at x + i*y.
+/mobt.deriv {
+    1 dict begin
+        /T exch def
+        T mobt.det
+        4 2 roll T mobt.v01 cmul T mobt.v11 cadd
+        2 copy cmul cdiv
+    end
+} bind def
+
+% sx xy T mobt.rescale  -->  T'
+%
+% Obtain another matrix for the same transformation by scaling
+% all the entries.
+/mobt.scale {
+    3 dict begin
+        /T exch def
+        /sy exch def
+        /sx exch def
+        [
+            T mobt.v00 sx sy cmul
+            T mobt.v10 sx sy cmul
+            T mobt.v01 sx sy cmul
+            T mobt.v11 sx sy cmul
+        ]
+    end
+} bind def
+
+% T mobt.normalize  -->  T'
+%
+% Return the same transformation normalized to have determinant 1.
+/mobt.normalize {
+    dup mobt.det csqrt-var 3 -1 roll mobt.scale
+} bind def
+
+% T0 T1 mobt.mul  -->  T0*T1
+%
+% Compose two Mobius transformations. Note that the action of the result
+% is z  -->  T1(T0(z)). In other words,
+%
+%   x y T0 mobt.apply T1 mobt.apply
+%
+% and
+%
+%   x y T0 T1 mobt.mul mobt.apply
+%
+% are equivalent in exact arithmetic.
+/mobt.mul {
+    2 dict begin
+        /T1 exch def
+        /T0 exch def
+        [
+            T0 mobt.v00 T1 mobt.v00 cmul
+            T0 mobt.v01 T1 mobt.v10 cmul
+            cadd
+            T0 mobt.v10 T1 mobt.v00 cmul
+            T0 mobt.v11 T1 mobt.v10 cmul
+            cadd
+            T0 mobt.v00 T1 mobt.v01 cmul
+            T0 mobt.v01 T1 mobt.v11 cmul
+            cadd
+            T0 mobt.v10 T1 mobt.v01 cmul
+            T0 mobt.v11 T1 mobt.v11 cmul
+            cadd
+        ]
+    end
+} bind def
+
+% [T_0 ... T_{n-1}] mobt.word  -->  T
+%
+% Compose a sequence of Mobius transformations.
+/mobt.word {
+    mobt.id exch {mobt.mul} forall
+} def
+
+% T mobt.inv  -->  T^(-1)
+%
+% Invert a Mobius transformation.
+/mobt.inv {
+    1 dict begin
+        /T exch def
+        [T mobt.v11 T mobt.v10 cneg T mobt.v01 cneg T mobt.v00]
+    end
+} bind def
+
+% [a0x a0y  a1x a1y  a2x a2y] [b0x b0y  b1x b1y  b2x b2y]
+% mobt.from-points
+%   -->
+% T
+%
+% Compute the unique Mobius transformation mapping the `a` points to
+% the corresponding `b` points. In practice, this is probably the most
+% useful constructor of a Mobius transformation.
+/mobt.from-points {
+    5 dict begin
+        /b exch def
+        /a exch def
+        /X [6 2 10 {
+            /i exch def
+            a i 2 sub 6 mod get a i 1 sub 6 mod get
+            b i 2 sub 6 mod get b i 1 sub 6 mod get
+            cmul
+            a i 2 add 6 mod get a i 3 add 6 mod get
+            b i 2 add 6 mod get b i 3 add 6 mod get
+            cmul
+            csub
+        } for ] def
+        /Y [6 2 10 {
+            /i exch def
+            a i 2 add 6 mod get a i 3 add 6 mod get
+            b i 2 sub 6 mod get b i 1 sub 6 mod get
+            cmul
+            a i 2 sub 6 mod get a i 1 sub 6 mod get
+            b i 2 add 6 mod get b i 3 add 6 mod get
+            cmul
+            csub
+        } for ] def
+
+        [
+            % v00
+            6 2 10 {
+                /i exch def
+                b i 6 mod get b i 1 add 6 mod get
+                X i 6 mod get X i 1 add 6 mod get
+                cmul
+            } for
+            cadd cadd
+
+            % v10
+            6 2 10 {
+                /i exch def
+                a i 6 mod get a i 1 add 6 mod get
+                b i 6 mod get b i 1 add 6 mod get
+                Y i 6 mod get Y i 1 add 6 mod get
+                cmul cmul
+            } for
+            cadd cadd
+
+            % v01
+            6 2 10 {
+                /i exch def
+                Y i 6 mod get Y i 1 add 6 mod get
+            } for
+            cadd cadd
+
+            % v11
+            6 2 10 {
+                /i exch def
+                a i 6 mod get a i 1 add 6 mod get
+                X i 6 mod get X i 1 add 6 mod get
+                cmul
+            } for
+            cadd cadd
+        ]
+    end
+} bind def
+
+% T mobt.fixed-points  -->  z0 z1 (4 values)
+%
+% Compute the two complex fixed points of T.
+% This function will fail if one fixed point is at infinity.
+/mobt.fixed-points {
+    2 dict begin
+        /T exch def
+        T mobt.v00 T mobt.v11 csub
+        T mobt.trace 2 copy cmul T mobt.det 4 0 cmul csub csqrt-var
+        4 copy cadd T mobt.v01 2 0 cmul cdiv
+        6 2 roll csub T mobt.v01 2 0 cmul cdiv
+    end
+} bind def
+
+% zx zy  wx wy  tx ty mobt.from-nodes-and-trace  -->  T
+%
+% Construct a Mobius transformation with fixed points z, w and trace t.
+% z and w should be distinct, or division by zero will occur.
+%
+% TODO: the result is not uniquely defined by these conditions, since T
+% and T^(-1) have the same nodes and trace. How exactly are we picking
+% one?
+/mobt.from-nodes-and-trace {
+    8 dict begin
+    /ty exch def /tx exch def
+    /wy exch def /wx exch def
+    /zy exch def /zx exch def
+
+    tx ty 2 copy cmul 4 0 csub csqrt-var
+    zx zy wx wy csub cdiv
+    /cy exch def /cx exch def
+
+    [
+        % v00
+        tx ty cx cy zx zy wx wy cadd cmul cadd 2 0 cdiv
+
+        % v10
+        cx cy cneg zx zy wx wy cmul cmul
+
+        % v01
+        cx cy
+
+        % v11
+        tx ty cx cy zx zy wx wy cadd cmul csub 2 0 cdiv
+    ]
+    end
+} bind def
+
+% T mobt.attractor  -->  ax ay
+%
+% Find the attracting fixed point of a hyperbolic or loxodromic
+% Mobius transformation.
+/mobt.attractor {
+    1 dict begin
+        /T exch def
+        T mobt.fixed-points
+        2 copy T mobt.deriv cnorm 1 ge {pop pop} {4 2 roll pop pop} ifelse
+    end
+} bind def
+
+% T mobt.repulsor  ax ay
+%
+% Find the repelling fixed point of a hyperbolic or loxodromic
+% Mobius transformation.
+/mobt.repulsor {mobt.inv mobt.attractor} bind def

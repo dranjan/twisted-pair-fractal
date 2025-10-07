@@ -1,16 +1,21 @@
 %!
 
+% Permutations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % A permutation is represented as an array:
-% [s_1 s_2 ... s_n]
+%   [s_1 s_2 ... s_n]
 % (The s_k should be 0, 1, ..., n-1 in some permutation.)
 
-% n p_id -> [0 1 ... n-1]
-/p_id {
+% n perm.id  -->  [0 1 ... n-1]
+/perm.id {
     [ 0 1 4 -1 roll 1 sub { } for ]
 } bind def
 
-% a s p_mul -> s(a)
-/p_mul {
+% s0 s1 perm.mul  -->  s0*s1
+%
+% Because permutations act on the right in this implementation, the
+% resulting permutation is equivalent to applying s0 followed by s1.
+/perm.mul {
     [ 3 1 roll
     {
         exch dup 3 -1 roll get exch
@@ -18,12 +23,12 @@
     pop ]
 } bind def
 
-% Semantically different from p_mul in that it is meant to be applied
+% Semantically different from perm.mul in that it is meant to be applied
 % to an arbitrary array of the right size
-/permute //p_mul def
+/perm.apply //perm.mul def
 
-% s p_inv -> s^-1
-/p_inv {
+% s perm.inv  -->  s^-1
+/perm.inv {
     2 dict begin
     /s exch def
     s length array
@@ -32,4 +37,18 @@
         dup s k get k put
     } for
     end
+} bind def
+
+% s perm.fixed-points  -->  [k_1 ... k_m]
+%
+% Return an array of all the fixed points of the permutation.
+/perm.fixed-points {
+    [ exch
+     1 dict begin
+         dup length 1 sub 0 1 3 -1 roll {
+             /k exch def
+             dup k get k eq {k exch} if
+         } for
+         pop
+     end ]
 } bind def

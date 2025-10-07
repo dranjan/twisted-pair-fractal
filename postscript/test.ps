@@ -1,7 +1,8 @@
 %!
 
 (complex.ps) run
-(moebius.ps) run
+(mobius.ps) run
+(permute.ps) run
 (disk.ps) run
 (roi.ps) run
 (stdlib.ps) run
@@ -133,6 +134,115 @@
 
 /test.csqrt-var.02 {
     [0 1 csqrt-var] [0.5 sqrt 0.5 sqrt] all-near
+} run-test
+
+/test.mobt-det.01 {
+    [[1 0 2 0 3 0 4 0] mobt.det] [-2 0] all-near
+} run-test
+
+/test.mobt-trace.01 {
+    [[1 0 2 0 3 0 4 0] mobt.trace] [5 0] all-near
+} run-test
+
+/test.mobt-getters.01 {
+    /T 1 0 2 0 3 0 4 0 mobt def
+    [T mobt.v00] [1 0] all-near
+    [T mobt.v01] [3 0] all-near
+    [T mobt.v10] [2 0] all-near
+    [T mobt.v11] [4 0] all-near
+} run-test
+
+/test.mobt-apply.01 {
+    /T mobt.id def
+    [6 7 T mobt.apply] [6 7] all-near
+} run-test
+
+/test.mobt-apply.02 {
+    /T 1 0 1 0 1 0 0 0 mobt def
+    [2 0 T mobt.apply] [1.5 0] all-near
+} run-test
+
+/test.mobt-deriv.01 {
+    [2 0 [1 0 -1 0 1 0 0 0] mobt.deriv] [0.25 0] all-near
+} run-test
+
+/test.mobt-normalize.01 {
+    /T [1 0 0 0 0 0 -1 0] mobt.normalize def
+    T mobt.v00 exch pop 0 le {/T -1 0 T mobt.scale def} if
+    T [0 1 0 0 0 0 0 -1] all-near
+} run-test
+
+/test.mobt-mul.01 {
+    [1 0 1 0 0 0 1 0] [1 0 0 0 1 0 1 0] mobt.mul
+    [1 0 1 0 1 0 2 0] all-near
+} run-test
+
+/test.mobt-inv.01 {
+    [1 0 1 0 0 0 1 0] mobt.inv [1 0 -1 0 0 0 1 0] all-near
+} run-test
+
+/test.mobt-word.01 {
+    /a [1 0 1 0 0 0 1 0] def
+    /b [0 0 0 1 0 1 0 0] def
+    /A a mobt.inv def
+    /w [A b a] mobt.word def
+    /w w mobt.v00 cinv w mobt.scale def
+    w [1 0 0 0 1 0 -1 0] all-near
+} run-test
+
+/test.mobt-from-points.01 {
+    /T [1 0 0 1 0 -2 3 0] def
+    0 1 /a0 cdef
+    0 -1 /a1 cdef
+    2 2 /a2 cdef
+    a0 T mobt.apply /b0 cdef
+    a1 T mobt.apply /b1 cdef
+    a2 T mobt.apply /b2 cdef
+    /U [a0 a1 a2] [b0 b1 b2] mobt.from-points def
+    /U U mobt.v00 cinv U mobt.scale def
+    U T all-near
+} run-test
+
+/test.mobt-fixed-points.01 {
+    [[1 0 1 0 -1 0 1 0] mobt.fixed-points
+     dup 0 ge {4 2 roll} if]
+    [0 1 0 -1] all-near
+} run-test
+
+/test.mobt-from-nodes-and-trace.01 {
+    /T 0 1 0 -1 0 0 mobt.from-nodes-and-trace def
+    /T T mobt.v01 cinv T mobt.scale def
+    T [0 0 -1 0 1 0 0 0] all-near
+} run-test
+
+/test.mobt-attractor.01 {
+    [[-1 0 1 0 0 0] [-1 0 1 0 0.5 0] mobt.from-points mobt.attractor]
+    [1 0] all-near
+} run-test
+
+/test.mobt-repulsor.01 {
+    [[-1 0 1 0 0 0] [-1 0 1 0 0.5 0] mobt.from-points mobt.repulsor]
+    [-1 0] all-near
+} run-test
+
+/test.perm-id.01 {
+    5 perm.id [0 1 2 3 4] all-near
+} run-test
+
+/test.perm-apply.01 {
+    [0.1 0.2 0.4] [1 2 0] perm.apply [0.2 0.4 0.1] all-near
+} run-test
+
+/test.perm-mul.01 {
+    [1 2 3 0] [0 1 3 2] perm.mul [1 2 0 3] all-near
+} run-test
+
+/test.perm-inv.01 {
+    [1 2 0 3] perm.inv [2 0 1 3] all-near
+} run-test
+
+/test.perm-fixed-points {
+    [1 2 0 3] perm.fixed-points [3] all-near
 } run-test
 
 /test.centered.01 {
@@ -451,7 +561,7 @@
 /test.arc-transform.02 {
     [0 -1 0 1 90]       % semicircular arc from -i to i, through -1
     [1 0 0 1 1 0 0 -1]  % x -> (x + i)/(x - i)
-    mobv_inv
+    mobt.inv
     arc.transform
     [-1 0 1 0 0]        % segment between -1 and 1
     all-near
@@ -486,7 +596,7 @@
 } run-test
 
 /test.disk-transform.01 {
-    /T [0 0 1 0 2 0] [1 1 2 1 3 1] mobv_from_points mobv_normalize def
+    /T [0 0 1 0 2 0] [1 1 2 1 3 1] mobt.from-points mobt.normalize def
     /A 0 1 1.5 disk.centered def
     /B A T disk.transform def
     B disk.radius 1.5 near check
@@ -572,7 +682,7 @@
 } run-test
 
 /test.bbox-inverted.01 {
-    -1 -2 3 4 [1 0 2 3 0 0 1 0] mobv_normalize bbox.inverted not check
+    -1 -2 3 4 [1 0 2 3 0 0 1 0] mobt.normalize bbox.inverted not check
 } run-test
 
 /test.bbox-inverted.02 {

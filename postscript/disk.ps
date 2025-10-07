@@ -3,17 +3,16 @@
 % layout: [c00 c01x c01y c11]
 % where the matrix C is
 %
-%    c00          c01x + c01y
-%    c01x - c01y  c11
+%    c00          c01x - c01y
+%    c01x + c01y  c11
 %
 % to define the disk as the locus of z satisfying
 %
-%    conj(zv) * C * zv <= 0,
+%    zv * C * conj(zv) <= 0,
 %
 % where zv is the vector
 %
-%    z
-%    1.
+%    [z 1].
 /disk {
     [5 1 roll]
 } bind def
@@ -127,7 +126,7 @@
     end
 } bind def
 
-% disk trans  -->  disk'
+% disk T  -->  disk'
 %
 % Transform a disk by a Mobius transformation.
 /disk.transform {

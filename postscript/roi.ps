@@ -4,7 +4,7 @@
 %
 % Dependencies:
 % - complex.ps
-% - moebius.ps
+% - mobius.ps
 % - disk.ps
 
 % Arc functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -159,12 +159,12 @@
         } ifelse
 
         % 2. Undo the transformation and discard invalid points.
-        /t t mobv_inv def
+        /t t mobt.inv def
         [
             exch
             {
                 dup 0 gt {
-                    0 t apply_mobv
+                    0 t mobt.apply
                 } {
                     % This candidate isn't actually between the
                     % endpoints of the arc.
@@ -284,16 +284,16 @@
         aload pop
         /a exch def  % NOTE: in degrees!
         2 copy /z1y exch def /z1x exch def
-        T apply_mobv /z1y' exch def /z1x' exch def
+        T mobt.apply /z1y' exch def /z1x' exch def
         2 copy /z0y exch def /z0x exch def
-        T apply_mobv /z0y' exch def /z0x' exch def
+        T mobt.apply /z0y' exch def /z0x' exch def
         [
             % The endpoints
             z0x' z0y' z1x' z1y'
 
             % The angle, in degrees
             z1y z0y sub z1x z0x sub atan
-            z0x z0y T mobv_deriv exch atan add
+            z0x z0y T mobt.deriv exch atan add
             z1y' z0y' sub z1x' z0x' sub atan sub
             a add
             180 add 360 fmod 180 sub
@@ -562,13 +562,13 @@
         /path exch def
         /ury exch def /urx exch def
         /lly exch def /llx exch def
-        llx lly urx ury roi.from-bbox T mobv_inv roi.transform
+        llx lly urx ury roi.from-bbox T mobt.inv roi.transform
         gsave
             roi.trace
             /path load instroke
         grestore
         true
-        llx lly urx ury x0 y0 T apply_mobv bbox.contains {exch} if
+        llx lly urx ury x0 y0 T mobt.apply bbox.contains {exch} if
     end
 } bind def
 
@@ -605,7 +605,7 @@
         false
         0 2 points length 2 sub {
             /i exch def
-            llx lly urx ury points i 2 getinterval aload pop T apply_mobv
+            llx lly urx ury points i 2 getinterval aload pop T mobt.apply
             bbox.contains {
                 pop true exit
             } if
@@ -613,7 +613,7 @@
             true
         } {
             /roi llx lly urx ury roi.from-bbox def
-            /Ti T mobv_inv def
+            /Ti T mobt.inv def
             /len roi roi.length def
             /factor 1 def
             {
