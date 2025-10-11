@@ -22,7 +22,7 @@
 % complex conjugate and norm
 /conj { neg } bind def
 
-% x y cnorm -> x^2 + y^2
+% x y cnorm  -->  x^2 + y^2
 /cnorm { dup mul exch dup mul add } bind def
 % complex division
 /cinv {
@@ -31,14 +31,14 @@
 /cdiv { cinv cmul } def
 /cneg { neg exch neg exch } bind def
 
-% x y to-polar -> r theta (in degrees)
+% x y to-polar  -->  r theta (in degrees)
 /to-polar {
     2 copy 0 eq exch 0 eq and not {
         2 copy cnorm sqrt 3 1 roll exch atan
     } if
 } bind def
 
-% r theta (degrees) from-polar -> x y
+% r theta (degrees) from-polar  -->  x y
 /from-polar {
     exch dup 0 eq {
         pop pop 0 0
@@ -47,13 +47,13 @@
     } ifelse
 } bind def
 
-% x y fmod -> x mod y
+% x y fmod  -->  x mod y
 % This operates on real numbers, not complex.
 /fmod {
     dup 3 1 roll div dup floor sub mul
 } bind def
 
-% x y n cpow -> (x + iy)^n
+% x y n cpow  -->  (x + iy)^n
 % The branch cut is above the negative real axis.
 /cpow {
     dup 4 2 roll
@@ -62,27 +62,27 @@
     from-polar
 } bind def
 
-% x y csqrt -> sqrt(x + i y)
+% x y csqrt  -->  sqrt(x + i y)
 % The branch cut is above the negative real axis, and the result will
 % have a nonnegative real part.
 /csqrt {
     0.5 cpow
 } def
 
-% x y csqrt-var -> sqrt(x + i y)
+% x y csqrt-var  -->  sqrt(x + i y)
 % The branch cut is below the positive real axis, and the result will
 % have a nonnegative imaginary part.
 /csqrt-var {
     cneg csqrt neg exch
 } bind def
 
-% x y cexp -> e^(x + i y)
+% x y cexp  -->  e^(x + i y)
 /cexp {
     exch 2.71828182845904524 exch exp exch 3.1415926536 div 180 mul
     from-polar
 } bind def
 
-% x y clog -> log(x + i y)
+% x y clog  -->  log(x + i y)
 /clog {
     to-polar
     dup 180 ge {360 sub} if
@@ -93,13 +93,21 @@
     [3 1 roll] ==
 } bind def
 
+% x0 y0 x1 y1 ceq  -->  bool
 /ceq {
     3 -1 roll eq 3 1 roll eq and
 } bind def
 
+% x0 y0 x1 y1 cne  -->  bool
 /cne {
     ceq not
 } bind def
 
-% x y /z cdef = /z {x y} def
+% x y /z cdef  ==>  /z {x y} def
+%
+% Bind the name at the top of the stack to a procedure pushing the next
+% two stack elements. Because our complex numbers are just pairs of real
+% numbers on the stack and not encapsulated in arrays, this is as close
+% as we can get to binding both components of a complex number in a
+% transparent and user-friendly way.
 /cdef {3 1 roll [3 1 roll] cvx def} def

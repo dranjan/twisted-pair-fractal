@@ -95,24 +95,31 @@
     {factor bbox roi roi_path bw bbox2} vdef
 } bind def
 
+% Fundamental Parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Twisted Pair Group parameters.
 /m 13 def
 /n 8 def
 
-% Twisted Pair Polynomial root. This is computed elsewhere.
+% Twisted Pair Polynomial root. The Sage notebook in this repository
+% describes the properties of this algebraic number and how it is
+% computed.
 /rho_x -1.473467395621956 def
 /rho_y -0.03490851803492841 def
 
-% Fundamental parameter
-rho_x 2 add rho_y csqrt cneg rho_x 2 sub rho_y csqrt cneg cadd 2 0 cdiv
-/beta cdef
+% The number of primary colors. This number is very special and also
+% specific to our choice of (m, n). It's not the only possible choice,
+% but determining the possible values of num_colors is not very
+% straightforward. The Sage notebook in this repository has more details
+% on that.
+/num_colors 17 def
 
-beta n cpow /t cdef
-t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
-
-% Group structure.
+% Group Structure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % Each transformation is a pair of (T, P) where T is a Mobius
-% transformation and P is a permutation on {0, ..., 16}.
+% transformation and P is a permutation on {0, ..., 16}. The size of
+% that set, 17, is very special and also specific to our choice of
+% (m, n).
 
 /tp.id [mobt.id 17 perm.id] def
 
@@ -123,6 +130,9 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
     2 dict begin
         /T1 exch def
         /T0 exch def
+        % Note: the Mobius transformation and permutation act on
+        % opposite sides in this implementation. It just turns out to be
+        % convenient that way.
         [T0 tp.mobt T1 tp.mobt mobt.mul T1 tp.perm T0 tp.perm perm.mul]
     end
 } bind def
@@ -135,9 +145,30 @@ t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
     tp.id exch aload length {tp.mul} repeat
 } bind def
 
-% Twisted Pair Group generators.
-/r [[0 0 1 0 -1 0 1 0] [15 11 7 1 14 5 2 6 13 8 10 3 4 9 12 16 0]] def
-/ru [[0 0 -1 0 beta cdiv beta s] [5 3 13 15 8 9 14 2 16 1 12 6 4 10 7 11 0]] def
+% This is the primitive root of the number field that contains
+% everything. Right now we need it to define he group generators.
+rho_x 2 add rho_y csqrt cneg rho_x 2 sub rho_y csqrt cneg cadd 2 0 cdiv
+/beta cdef
+
+beta n cpow /t cdef
+t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
+
+% Twisted Pair Group generators. Determining the permutations is mostly
+% straightforward given everything else, but still something that is
+% best done in a symbolic environment like Sage, so in this code we take
+% the permutations as given. The Sage notebook in this repository
+% shows exactly how they are computed.
+/r [[0 0 1 0 -1 0 1 0]
+    [15 11 7 1 14 5 2 6 13 8 10 3 4 9 12 16 0]] def
+/ru [[0 0 -1 0 beta cdiv beta s]
+     [5 3 13 15 8 9 14 2 16 1 12 6 4 10 7 11 0]] def
+
+% Auxiliary Definitions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Here we define additional Mobius transformations and TP-group members,
+% points, disks, and circles. More of these are defined further below,
+% closer to where they are needed by graph-related logic.
+
 /u r tp.inv ru tp.mul def
 
 /R r tp.inv def
@@ -191,6 +222,16 @@ mobt.from-nodes-and-trace /c0.5 exch def
 
 a tp.mobt mobt.trace scale-from-trace csqrt csqrt /sc cdef
 
+% Graph Logic %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% From here on, unfortunately the code may become harder to follow.
+%
+% We define a rooted directed graph whose edges are TP-group elements.
+% The nodes of the graph are specific subsets of the fractal, with the
+% root being the whole fractal. The fractal is rendered by recursively
+% enumerating paths from the root. Each given path may prune recursion
+% and/or cause drawing operations using node-dependent logic.
+%
 % Node format:
 %   [
 %     {per_node_proc}
@@ -199,16 +240,74 @@ a tp.mobt mobt.trace scale-from-trace csqrt csqrt /sc cdef
 %
 % The per_node_proc is called as
 %
-%   t per_node_proc  =  bool
+%   state per_node_proc  =  bool
 %
-% where `t` is the current Mobius transformation and the return
-% value indicates whether recursion should continue.
+% where `state` is the current state array. The state is a PostScript
+% array with three elements:
+%
+%   [
+%     [
+%       T  % Mobius transformation
+%       P  % Permutation
+%     ]
+%     c    % RGB color
+%     v    % Nesting level
+%   ]
+%
+% The return value of per_node_proc indicates whether recursion should
+% continue, and if any drawing operation are to be performed,
+% per_node_proc does them directly.
 %
 % Edge format:
 %   [ /node transform ]
 %
-% where the transform is a transformation and /node is the
-% name of a node.
+% where /node is the name of a node (say, in userdict) and the
+% transform is a procedure to compute the new node's state vector given
+% the old one. In practice only the color vector is ever updated in an
+% unobvious way, so the transform is actually *generated* given the
+% TP-group element between the old and new nodes, the nesting level
+% change, and the subprocedure to update the color. A procedure in
+% PostScript is nothing more than the literal array of syntax tokens
+% used to define it, so nothing prevents you from generating one on the
+% fly, besides your sanity.
+
+/node-proc0 {
+    3 dict begin
+        /color-accum exch def
+        /dv exch def
+        /dt exch tp.word def
+        [
+            /aload cvx
+            /pop cvx
+            dv /add cvx
+            3 -1 /roll cvx
+            dt /exch cvx /tp.mul cvx
+            3 1 /roll cvx
+            color-accum cvx
+            3 /array cvx /astore cvx
+        ] cvx
+    end
+} bind def
+
+/def-node {
+    aload pop
+    2 dict begin
+        [/proc /edges] vdef
+        [
+            /proc load cvx
+            [edges {
+                 [exch aload pop node-proc0]
+             } forall]
+        ]
+    end
+    def
+} bind def
+
+% Node testing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% the subroutines for recursion-pruning and drawing are
+% defined here, along with some definitions of test-specific geometric
+% entities.
 
 /test-points {
     %(test-points) == flush
@@ -429,10 +528,16 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     end
 } bind def
 
+% Color Logic %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% The coloring logic is defined here. We need to assume num_colors ==
+% 17 when defining the permutations, and I just don't know any good way
+% around that.
+
 /colors [
     gsave
-        0 1 16 {
-            1.25 0.55 sub mul 16 div 0.55 add
+        0 1 num_colors 1 sub {
+            1.25 0.55 sub mul num_colors 1 sub div 0.55 add
             dup 1 ge {1 sub} if 1 1 sethsbcolor
             [currentrgbcolor]
         } for
@@ -573,37 +678,9 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     end
 } bind def
 
-/node-proc0 {
-    3 dict begin
-        /color-accum exch def
-        /dv exch def
-        /dt exch tp.word def
-        [
-            /aload cvx
-            /pop cvx
-            dv /add cvx
-            3 -1 /roll cvx
-            dt /exch cvx /tp.mul cvx
-            3 1 /roll cvx
-            color-accum cvx
-            3 /array cvx /astore cvx
-        ] cvx
-    end
-} bind def
-
-/def-node {
-    aload pop
-    2 dict begin
-        [/proc /edges] vdef
-        [
-            /proc load cvx
-            [edges {
-                 [exch aload pop node-proc0]
-             } forall]
-        ]
-    end
-    def
-} bind def
+% Graph Structure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Finally, we define the structure of the graph itself.
 
 /tri [
     /tri-test cvx
@@ -775,6 +852,8 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     ]
 ] def-node
 
+% Recursion Logic %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 /process-one-node {
     3 dict begin
         /state exch def
@@ -810,6 +889,7 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     end
 } bind def
 
+% For debugging
 /draw-point {
     newpath
     1 dict begin
@@ -843,7 +923,7 @@ def
 /view view2 def
 
 %/height 0.88276 def  % for view3
-%/height 4 def       % for view3 with /tri
+%/height 4 def        % for view3 with /tri
 %/height 0.56888 def  % for view2
 %/height 0.35 def
 /y0 0 def
