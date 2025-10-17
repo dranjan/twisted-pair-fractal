@@ -912,9 +912,7 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
 /res 1 setdefault
 
 /view3 [rv 17 perm.id] def
-/view2 [[snake_t mobt.inv q] mobt.word 17 perm.id]
-%[[1 0 0 0 0 0 1 0] [0 1 2 3 4 5 6 7 16 9 10 15 12 13 14 11 8]] tp.mul
-def
+/view2 [[snake_t mobt.inv q] mobt.word 17 perm.id] def
 /view2 view2
 [[1 0 b tp.mobt mobt.attractor view2 tp.mobt mobt.apply cdiv 0 0 0 0 1 0] mobt.normalize
  17 perm.id] tp.mul
@@ -934,7 +932,6 @@ def
 
 x0 y0 width set-roi-from-width
 
-%/colors [17{[1 1 1]}repeat] def
 /13snake [view [0 0 0] 0] graph-recurse
 
 [/maxc maxc] ==
