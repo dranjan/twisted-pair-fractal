@@ -355,7 +355,8 @@ a tp.mobt mobt.trace scale-from-trace csqrt csqrt /sc cdef
     end
 } bind def
 
-/rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg] mobt.from-points mobt.normalize def
+/rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg]
+    mobt.from-points mobt.normalize def
 /tri-test-transform rv mobt.inv def
 
 /tri-test-points [
@@ -764,8 +765,8 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     ]
 ] def-node
 
-% This "virtual" /tri node with one corner and a middle is separated from /snake
-% for the sake of color computation.
+% This "virtual" /tri node with one corner and a middle is separated
+% from /snake for the sake of color computation.
 /virtual-tri [
     {pop true}
     [
@@ -914,7 +915,8 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
 /view3 [rv 17 perm.id] def
 /view2 [[snake_t mobt.inv q] mobt.word 17 perm.id] def
 /view2 view2
-[[1 0 b tp.mobt mobt.attractor view2 tp.mobt mobt.apply cdiv 0 0 0 0 1 0] mobt.normalize
+[[1 0 b tp.mobt mobt.attractor view2 tp.mobt mobt.apply cdiv 0 0 0 0 1 0]
+ mobt.normalize
  17 perm.id] tp.mul
 def
 
