@@ -117,11 +117,9 @@
 % Group Structure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Each transformation is a pair of (T, P) where T is a Mobius
-% transformation and P is a permutation on {0, ..., 16}. The size of
-% that set, 17, is very special and also specific to our choice of
-% (m, n).
+% transformation and P is a permutation on {0, ..., 16}.
 
-/tp.id [mobt.id 17 perm.id] def
+/tp.id [mobt.id num_colors perm.id] def
 
 /tp.mobt {0 get} bind def
 /tp.perm {1 get} bind def
