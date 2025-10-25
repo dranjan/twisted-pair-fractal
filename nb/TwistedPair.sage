@@ -6,18 +6,21 @@
 #       extension: .sage
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.2
+#       jupytext_version: 1.16.6
 #   kernelspec:
-#     display_name: SageMath 10.4
+#     display_name: SageMath 10.6
 #     language: sage
 #     name: sagemath
 # ---
 
+# + [markdown] editable=true slideshow={"slide_type": ""}
 # # The Twisted Pair Construction
+# -
 
 # ## Introduction
 #
 # $$
+# \DeclareMathOperator{\psl}{PSL}
 # \newcommand{\pslc}{\psl_2(\mathbb{C})}
 # $$
 #
