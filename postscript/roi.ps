@@ -1,0 +1,691 @@
+%!
+%
+% Utilities for managing a global rectangular viewport.
+%
+% Dependencies:
+% - complex.ps
+% - moebius.ps
+% - disk.ps
+% - circles.ps
+
+% Arc functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% A directed arc is represented as the array [x0 y0 x1 y1 a], where
+% - (x0, y0) is the starting vertex
+% - (x1, y1) is the ending vertex
+% - a is the angle (in degrees) of the tangent vector at the starting
+%   point, counterclockwise from the ray to the ending vertex.
+
+% arc arc.z0  -->  x0 y0
+%
+% Get the first endpoint of the arc.
+/arc.z0 {
+    0 2 getinterval aload pop
+} bind def
+
+% arc arc.z1  -->  x1 y1
+%
+% Get the second endpoint of the arc.
+/arc.z1 {
+    2 2 getinterval aload pop
+} bind def
+
+% arc arc.disk  -->  disk
+%
+% Obtain the disk whose boundary contains the given arc along its
+% counterclockwise boundary.
+/arc.disk {
+    aload pop
+    15 dict begin
+        /a exch def  % NOTE: in degrees!
+        /z1y exch def
+        /z1x exch def
+        /z0y exch def
+        /z0x exch def
+        /dx z1x z0x sub def
+        /dy z1y z0y sub def
+        /mx z1x z0x add 2 div def
+        /my z1y z0y add 2 div def
+        /d dx dy cnorm sqrt def
+        /s a sin def
+        /c a cos def
+        /k s d div dup add neg def
+        /bx mx k mul dy c mul d div sub def
+        /by my k mul dx c mul d div add def
+        [k bx neg by neg
+         z0x k mul bx dup add sub z0x mul
+         z0y k mul by dup add sub z0y mul add neg]
+     end
+} bind def
+
+% arc arc.circle  -->  x y r
+%
+% Obtain the center and radius of a non-degenerate arc. If the arc is
+% degenerate (i.e., with an angle of 0 or 180 degrees), then the result
+% is undefined.
+/arc.circle {
+    aload pop
+    15 dict begin
+        /a exch def  % NOTE: in degrees!
+        /z1y exch def
+        /z1x exch def
+        /z0y exch def
+        /z0x exch def
+        /dx z1x z0x sub def
+        /dy z1y z0y sub def
+        /mx z1x z0x add 2 div def
+        /my z1y z0y add 2 div def
+        /d dx dy cnorm sqrt def
+        /s a sin def
+        /c a cos def
+        /k s d div dup add neg def
+        /bx mx k mul dy c mul d div sub def
+        /by my k mul dx c mul d div add def
+        bx k div by k div 1 k div
+    end
+} bind def
+
+% x y r theta0 theta1 arc.centered  -->  arc
+%
+% Obtain a counterclockwise arc of a circle. All angles are in degrees.
+/arc.centered {
+    5 dict begin
+        /theta1 exch def
+        /theta0 exch def
+        /r exch def
+        /y exch def
+        /x exch def
+        /theta1 theta1 theta0 sub 360 fmod theta0 add def
+        [
+            x theta0 cos r mul add y theta0 sin r mul add
+            x theta1 cos r mul add y theta1 sin r mul add
+            theta1 theta0 sub -2 div 180 add 360 fmod 180 sub
+        ]
+    end
+} bind def
+
+% arc x y r arc.circle-intersection-points  -->  [..points..]
+%
+% Compute the intersection points of an arc and a circle. Returns an
+% array of 0, 1, or 2 points (so having length 0, 2, or 4 respectively).
+% If there are two points, they are in the order in which they are
+% encountered on the arc.
+%
+% NOTE: There's a known bug where when the arc's endpoints being too
+% close together leads to a /rangecheck error.
+/arc.circle-intersection-points {
+    13 dict begin
+        /r exch def
+        /y exch def
+        /x exch def
+        aload pop
+        /a exch def
+        /y1 exch def
+        /x1 exch def
+        /y0 exch def
+        /x0 exch def
+        /c a cos neg def
+        /s a sin def
+
+        % 0. First we simplify the problem by transforming the arc to the
+        %    positive real axis.
+        %
+        %    NOTE: This step can fail if the arc's endpoints are too close
+        %    together.
+        /t [c s x0 y0 c s cmul cneg 1 0 x1 y1 cneg] def
+        /d x y r disk.centered t disk.transform disk.normalize def
+
+        % 1. Accumulate 0-2 candidate intersection points into an array,
+        %    which are just real numbers due to the simplification.
+        %    Here, we don't check that the points are actually positive.
+        d 0 get abs 1e-6 le {
+            % Degenerate circle.
+            d 1 get abs 1e-6 le {
+                % Horizontal boundary.
+                []
+            } {
+                [d 3 get d 1 get dup add div neg dup 0 gt]
+            } ifelse
+        } {
+            % Normal circle.
+            /r 1 d 0 get abs div def
+            d disk.center
+            /y exch def
+            /x exch def
+            r dup mul y dup mul sub dup 0 le {
+                pop []
+            } {
+                sqrt [exch dup x exch sub exch x exch add]
+            } ifelse
+        } ifelse
+
+        % 2. Undo the transformation and discard invalid points.
+        /t t mobv_inv def
+        [
+            exch
+            {
+                dup 0 gt {
+                    0 t apply_mobv
+                } {
+                    % This candidate isn't actually between the
+                    % endpoints of the arc.
+                    pop
+                } ifelse
+            } forall
+        ]
+    end
+} bind def
+
+% arc x y arc.split --> arc0 arc1
+%
+% Split an arc by a point on the arc. If the given point (x, y) is not
+% actually on the arc (or very close to it), then the result is
+% undefined. The subsegments are enumerated in the order in which they
+% occur on the original arc.
+/arc.split {
+    8 dict begin
+        /y exch def
+        /x exch def
+        aload pop
+        /a exch def
+        /y1 exch def
+        /x1 exch def
+        /y0 exch def
+        /x0 exch def
+        a
+        y y0 sub x x0 sub atan
+        y1 y0 sub x1 x0 sub atan
+        sub
+        sub
+        /a' exch 180 add 360 fmod 180 sub def
+        [x0 y0 x y a']
+        [x y x1 y1 a a' sub 180 add 360 fmod 180 sub]
+    end
+} bind def
+
+% arc x y r arc.disk-intersection  -->  [...arc...]
+%
+% Compute the intersection of a generalized arc with a proper disk
+% (not a halfspace or disk complement). The result is an array of 0-2
+% arcs.
+/arc.disk-intersection {
+    14 dict begin
+        /r exch def
+        /y exch def
+        /x exch def
+        dup /A exch def
+        aload pop
+        /a exch def
+        /y1 exch def
+        /x1 exch def
+        /y0 exch def
+        /x0 exch def
+        /r2 r dup mul def
+        x0 x sub dup mul y0 y sub dup mul add r2 le {
+            % first vertex is in the disk.
+            A x y r arc.circle-intersection-points
+            dup length 4 eq {
+                % Two points of intersection.
+                aload pop
+                /y3 exch def
+                /x3 exch def
+                /y2 exch def
+                /x2 exch def
+                [
+                    A x2 y2 arc.split pop
+                    A x3 y3 arc.split exch pop
+                ]
+            } {
+                dup length 2 eq {
+                    % One point of intersection.
+                    aload pop
+                    /y2 exch def
+                    /x2 exch def
+                    [A x2 y2 arc.split pop] %true
+                } {
+                    pop
+                    [A]
+                } ifelse
+            } ifelse
+        } {
+            % first vertex is not in the disk.
+            A x y r arc.circle-intersection-points
+            dup length 4 eq {
+                % Two points of intersection.
+                aload pop
+                /y3 exch def
+                /x3 exch def
+                /y2 exch def
+                /x2 exch def
+                [
+                    A x2 y2 arc.split exch pop x3 y3 arc.split pop
+                ]
+            } {
+                dup length 2 eq {
+                    % One point of intersection.
+                    aload pop
+                    /y2 exch def
+                    /x2 exch def
+                    [A x2 y2 arc.split exch pop]
+                } {
+                    pop
+                    []
+                } ifelse
+            } ifelse
+        } ifelse
+    end
+} bind def
+
+% arc T arc.transform  -->  arc'
+%
+% Transform an arc by a Mobius transformation.
+/arc.transform {
+    10 dict begin
+        /T exch def
+        aload pop
+        /a exch def  % NOTE: in degrees!
+        2 copy /z1y exch def /z1x exch def
+        T apply_mobv /z1y' exch def /z1x' exch def
+        2 copy /z0y exch def /z0x exch def
+        T apply_mobv /z0y' exch def /z0x' exch def
+        [
+            % The endpoints
+            z0x' z0y' z1x' z1y'
+
+            % The angle, in degrees
+            z1y z0y sub z1x z0x sub atan
+            z0x z0y T mobv_deriv exch atan add
+            z1y' z0y' sub z1x' z0x' sub atan sub
+            a add
+            180 add 360 fmod 180 sub
+        ]
+    end
+} bind def
+
+% x y maybemoveto  -->  -
+%
+% If there is no current point, move to the given coordinates.
+% Otherwise, draw a line to the given coordinates.
+/maybelineto {
+    {currentpoint} stopped {
+        moveto
+        $error /newerror false put
+    } {
+        pop pop lineto
+    } ifelse
+} bind def
+
+% arc arc.trace  -->  -
+%
+% Append the line segment or arc for the given arc object to the
+% current path.
+%
+% NOTE: There's a problematic edge case here where the arc
+% passes through infinity or nearly so.
+% Here's an example ROI from real life (after a transformation):
+%
+%   [[20.2773514 -55.943512 21.5151215 -58.1822853 76.0038757]
+%    [21.5151215 -58.1822853 21.4441948 -58.6885872 50.9081726]
+%    [21.4441948 -58.6885872 21.1809368 -59.3397293 53.1300964]
+%    [21.1809368 -59.3397293 20.2773514 -55.943512 179.957886]]
+%
+% This will lead to a /limitcheck error. More generally though,
+% it can be pretty hard in practice to avoid this error, since
+% any old arc can transform into something huge that PostScript
+% has trouble rendering. For now, we ignore all of that here
+% and work around it elsewhere.
+/arc.trace {
+    dup 4 get abs 1e-6 le {
+        aload pop pop 4 2 roll maybelineto lineto
+    } {
+        dup arc.circle
+        5 dict begin
+            /r exch def
+            /y exch def
+            /x exch def
+            aload pop pop
+            y sub exch x sub atan /t1 exch def
+            y sub exch x sub atan /t0 exch def
+            x y r abs t0 t1
+            r 0 ge {arc} {arcn} ifelse
+        end
+    } ifelse
+} bind def
+
+% arc arc.length  -->  real
+%
+% Compute the length of an arc segment. A degenerate noncompact arc will
+% crash here.
+/arc.length {
+    aload pop
+    5 dict begin
+        /a exch def
+        /y1 exch def
+        /x1 exch def
+        /y0 exch def
+        /x0 exch def
+        % Distance between endpoints
+        x1 x0 sub dup mul y1 y0 sub dup mul add sqrt
+        % Correction factor for non-straightness
+        a abs 1e-6 le {
+            1
+        } {
+            a 180 add 360 fmod 180 sub 3.1415926536 180 div mul a sin div
+        } ifelse
+        mul
+    end
+} bind def
+
+% ROI management %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% A region of interest (ROI) is represented as a sequence of arcs around
+% the boundary of the region being rendered into. By convention, the
+% path is counterclockwise.
+
+% llx lly urx ury roi.from-bbox  -->  roi
+%
+% Convert an axis-aligned bounding box into the arc-based representation
+% described above.
+/roi.from-bbox {
+    4 dict begin
+        /ury exch def
+        /urx exch def
+        /lly exch def
+        /llx exch def
+        [
+            [llx lly urx lly 0]
+            [urx lly urx ury 0]
+            [urx ury llx ury 0]
+            [llx ury llx lly 0]
+        ]
+    end
+} bind def
+
+% roi roi.bbox  -->  llx lly urx ury
+%
+% The inverse of roi.from-bbox. If the roi is not equal to the
+% result of roi.from-bbox for some input, then the result is
+% undefined.
+/roi.bbox {
+    1 dict begin
+        /roi exch def
+        roi 0 get 0 get
+        roi 0 get 1 get
+        roi 2 get 0 get
+        roi 2 get 1 get
+    end
+} bind def
+
+% roi T roi.transform  -->  roi'
+%
+% Transform a ROI by a Mobius transformation.
+/roi.transform {
+    1 dict begin
+        /T exch def
+        [exch {T arc.transform} forall]
+    end
+} bind def
+
+% roi roi.trace  -->  -
+%
+% Create a new path going counterclockwise around the given ROI
+% object. This path can then be conveniently filled, stroked, or
+% tested against.
+/roi.trace {
+    newpath {arc.trace} forall closepath
+} bind def
+
+% roi x y roi.contains-bounded  -->  bool
+%
+% Determine if the given point is in the bounded componenet of the
+% ROI induced partition (either the interior or exterior).
+%
+% NOTE: This will affect the current path! Use gsave/grestore if that's
+% an issue.
+/roi.contains-bounded {
+    3 -1 roll roi.trace infill
+} bind def
+
+% roi T roi.inverted  -->  bool
+%
+% Determine if the given Mobius transformation applied to the ROI
+% instance inverts the interior and exterior, which is equivalent to
+% changing the direction of the boundary curve.
+/roi.inverted {
+    1 dict begin
+        /T exch def
+        T 6 get T 7 get T 4 get T 5 get 2 copy cnorm 1e-6 le {
+            4 {pop} repeat
+            false
+        } {
+            cdiv cneg
+            roi.contains-bounded
+        } ifelse
+    end
+} bind def
+
+% roi x y r roi.disk-intersection  -->  roi
+%
+% Compute the intersection of the given ROI object with the disk
+% centered at (x, y) with radius r. The result is another ROI object,
+% which may have a different number of arc segments than the original
+% one and may even be empty.
+/roi.disk-intersection {
+    8 dict begin
+        /r exch def
+        /y exch def
+        /x exch def
+        /theta0 null def
+        [
+            exch
+            {
+                x y r arc.disk-intersection aload pop
+            } forall
+        ]
+        dup length 0 gt {
+            [
+                exch dup dup length 1 sub get arc.z1 {x0 y0} vdef
+                {
+                    dup arc.z0 {x1 y1} vdef
+                    x0 y0 x1 y1 csub cnorm sqrt 1e-6 ge {
+                        [x0 y0 x1 y1
+                         y1 y sub x1 x sub atan y0 y sub x0 x sub atan sub
+                         360 fmod -2 div]
+                        exch
+                    } if
+                    dup arc.z1 {x0 y0} vdef
+                } forall
+            ]
+        } if
+    end
+} bind def
+
+% roi roi.length  -->  real
+%
+% Compute the length of the ROI object's boundary.
+/roi.length {
+    0 exch {arc.length add} forall
+} bind def
+
+% Bounding box functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% A bounding box is represented as a 4-tuple of real numbers placed
+% simply on the stack, in the order
+%
+%     llx lly urx ury
+
+% llx lly urx ury x y bbox.contains  -->  bool
+%
+% Determine if the given coordinates fall inside the bounding box.
+/bbox.contains {
+    6 dict begin
+        /y exch def /x exch def
+        /ury exch def /urx exch def
+        /lly exch def /llx exch def
+        x llx ge x urx le and
+        y lly ge y ury le and
+        and
+    end
+} bind def
+
+% llx lly urx ury T bbox.inverted  -->  bool
+%
+% Determine if the given Mobius transformation inverts the interior and
+% exterior of the given bounding box.
+/bbox.inverted {
+    1 dict begin
+        /T exch def
+        T 6 get T 7 get T 4 get T 5 get 2 copy cnorm 1e-6 le {
+            8 {pop} repeat
+            false
+        } {
+            cdiv cneg
+            bbox.contains
+        } ifelse
+    end
+} bind def
+
+% llx lly urx ury upath x0 y0 T bbox.classify-intersection  -->  bool bool
+%
+% Determine how the given upath mapped by the Mobius transformation T
+% lies relative to the given bounding box.
+%
+% - First return value: whether it intersects the interior.
+% - Second return value: whether it intersects the exterior.
+%
+% (Note that `false false` as a return value is not logically possible.)
+%
+% The point (x0, y0) is any point on or inside the upath.
+/bbox.classify-intersection {
+    8 dict begin
+        /T exch def
+        /y0 exch def /x0 exch def
+        /path exch def
+        /ury exch def /urx exch def
+        /lly exch def /llx exch def
+        llx lly urx ury roi.from-bbox T mobv_inv roi.transform
+        gsave
+            roi.trace
+            /path load instroke
+        grestore
+        true
+        llx lly urx ury x0 y0 T apply_mobv bbox.contains {exch} if
+    end
+} bind def
+
+% llx lly urx ury factor bbox.expand  -->  llx' lly' urx' ury'
+%
+% Expand a bounding box by a factor around its centroid.
+/bbox.expand {
+    9 dict begin
+        {llx lly urx ury factor} vdef
+        /mx llx urx add 2 div def
+        /my lly ury add 2 div def
+        /dx urx llx sub 2 div factor mul def
+        /dy ury lly sub 2 div factor mul def
+        mx dx sub my dy sub mx dx add my dy add
+    end
+} bind def
+
+% llx lly urx ury upath points T bbox.intersects  -->  bool
+%
+% Determine if the region bounded by the given upath intersects the
+% given bounding box. The points are any points on or inside the upath
+% being compared here. At least one point must be given.
+%
+% In the common case where the upath is entirely
+% contained in the bounding box, this implementation can be
+% substantially faster than bbox.classify-intersection.
+/bbox.intersects {
+    13 dict begin
+        /T exch def
+        /points exch def
+        /path exch def
+        /ury exch def /urx exch def
+        /lly exch def /llx exch def
+        false
+        0 2 points length 2 sub {
+            /i exch def
+            llx lly urx ury points i 2 getinterval aload pop T apply_mobv
+            bbox.contains {
+                pop true exit
+            } if
+        } for {
+            true
+        } {
+            /roi llx lly urx ury roi.from-bbox def
+            /Ti T mobv_inv def
+            /len roi roi.length def
+            /factor 1 def
+            {
+                /roi-transformed
+                llx lly urx ury factor bbox.expand
+                roi.from-bbox Ti roi.transform def
+                roi-transformed roi.length len div 500 lt {exit} if
+                % The ROI probably blew up because the pole of the
+                % transformation is very close to the boundary. Expanding
+                % the box slightly should work around that.
+                /factor factor 1.1 mul def
+            } loop
+            gsave
+                roi-transformed roi.trace
+                /path load instroke
+            grestore
+        } ifelse
+    end
+} bind def
+
+% llx lly urx ury x y r bbox.intersects-circle  -->  bool
+%
+% Determine if the given bounding box intersects the proper disk centered
+% at (x, y) with radius r.
+/bbox.intersects-circle {
+    7 dict begin
+        {llx lly urx ury x y r} vdef
+        x llx urx clamp x sub dup mul
+        y lly ury clamp y sub dup mul
+        add
+        r dup mul le
+    end
+} bind def
+
+% llx lly urx ury x y r bbox.intersects-circle-complement  -->  bool
+%
+% Determine if the given bounding box intersects the complement of the
+% proper disk centered at (x, y) with radius r.
+/bbox.intersects-circle-complement {
+    7 dict begin
+        dup mul /R exch def
+        /y exch def
+        /x exch def
+        y sub dup mul /Y1 exch def
+        x sub dup mul /X1 exch def
+        y sub dup mul /Y0 exch def
+        x sub dup mul /X0 exch def
+        X0 X1 max Y0 Y1 max add R ge
+    end
+} bind def
+
+% llx lly urx ury disk bbox.intersects-disk  -->  bool
+%
+% Determine if the given bounding box intersects the given generalized
+% disk.
+/bbox.intersects-disk {
+    5 dict begin
+        /disk exch def
+        disk 0 get 0 gt {
+            disk disk.center disk disk.radius bbox.intersects-circle
+        } {
+            % The disk's complement is convex in this case, and the
+            % bounding box is the convex hull of its four vertices.
+            % The bounding box is entirely contained in the complement
+            % of the disk if and only if each of those four vertices
+            % is.
+            {llx lly urx ury} vdef
+            llx lly disk disk.contains
+            llx ury disk disk.contains or
+            urx lly disk disk.contains or
+            urx ury disk disk.contains or
+        } ifelse
+    end
+} bind def

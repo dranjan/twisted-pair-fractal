@@ -1,0 +1,18 @@
+%!
+
+(complex.ps) run
+(moebius.ps) run
+(disk.ps) run
+(roi.ps) run
+
+50 50 150 150 roi.from-bbox /roi exch def
+roi roi.trace stroke
+1 0 0 setrgbcolor
+/w2 [
+    [50 50 150 50 30]
+    [150 50 150 150 -30]
+    [150 150 50 150 30]
+    [50 150 50 50 -30]
+] def
+w2 roi.trace stroke
+showpage

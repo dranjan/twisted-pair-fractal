@@ -1,0 +1,924 @@
+%!
+
+(stdlib.ps) run
+(mydefs.ps) run
+(permute.ps) run
+
+include_complex
+include_circles
+include_mobT
+stddefs
+
+(disk.ps) run
+(roi.ps) run
+
+/mnt /mobv_from_nodes_and_trace cvx def
+/amc /apply_mobv_to_circle cvx def
+
+/I [1 0 0 0 0 0 1 0] def
+
+% x0 y0 width set_roi_from_width  -
+%
+% Define the viewable window in the complex plane with given center and
+% width.
+%
+% 0. The parameters
+%
+%    - total_width
+%    - total_height
+%    - xmin_px
+%    - ymin_px
+%    - DEVICEWIDTHPOINTS
+%    - DEVICEHEIGHTPOINTS
+%
+%    Must be set by the caller of the program. The first four of those allow
+%    a subrectangle of the full logical ROI to be rendered. To render the
+%    full ROI, set total_width to DEVICEWIDTHPOINTS, total_height to
+%    DEVICEHEIGHTPOINTS, and xmin_px and ymin_px both to 0.
+%
+% 1. The CTM will be transformed so that subsequent drawing operations will
+%    do the right thing.
+%
+% 2. A bunch of definitions will be added to the enclosing environment:
+%
+%    - factor     (scaling factor)
+%    - bbox       (llx lly urx ury, the bounding box)
+%    - roi        (ROI object)
+%    - roi_path   (ROI boundary upath)
+%    - bw, bbox2  (padded bounding box data)
+%
+%    The code below may assume these definitions.
+%
+% 3. In addition, the ROI will be filled with black.
+/set_roi_from_width {
+    13 dict begin
+        /w exch def
+        /y0 exch def
+        /x0 exch def
+
+        /w_px total_width def
+        /h_px total_height def
+        /factor w_px w div def
+        /h h_px factor div def
+
+        0 0 transform /xy0 cdef
+        DEVICEWIDTHPOINTS DEVICEHEIGHTPOINTS transform /xy1 cdef
+
+        w_px 2 div xmin_px sub h_px 2 div ymin_px sub translate
+        factor dup scale
+        x0 neg y0 neg translate
+        0.1 factor div setlinewidth
+
+        /bbox [xy0 itransform xy1 itransform] cvx def
+
+        /bw 0.02 w mul def
+        /bbox2 [bbox 4 2 roll bw sub exch bw sub exch
+                     4 -2 roll bw add exch bw add exch] cvx def
+        /roi bbox roi.from-bbox def
+
+        gsave
+            roi roi.trace true upath
+        grestore /roi_path exch def
+
+        0 0 0 setrgbcolor
+        roi_path
+        fill
+
+        %% {{
+        %% NOTE: Uncomment this to reduce the logical ROI compared to
+        %% what is drawn. This can be used to debug the bounding box
+        %% intersection tests. Note that this logic is not compatible
+        %% with rendering any subrectangle except the full view.
+        %[bbox] 0.75 vscale cvx /bbox exch def
+        %/bbox2 [bbox 4 2 roll bw sub exch bw sub exch
+        %             4 -2 roll bw add exch bw add exch] cvx def
+        %/roi bbox roi.from-bbox def
+        %gsave
+        %    roi roi.trace true upath
+        %grestore /roi_path exch def
+        %% }}
+
+        factor /bbox load roi /roi_path load bw /bbox2 load
+    end
+    {factor bbox roi roi_path bw bbox2} vdef
+} bind def
+
+% Twisted Pair Group parameters.
+/m 13 def
+/n 8 def
+
+% Twisted Pair Polynomial root. This is computed elsewhere.
+/rho_x -1.473467395621956 def
+/rho_y -0.03490851803492841 def
+
+% Fundamental parameter
+rho_x 2 add rho_y csqrt2 cneg rho_x 2 sub rho_y csqrt2 cneg cadd 2 0 cdiv
+/beta cdef
+
+beta n cpow /t cdef
+t beta cmul 2 copy cinv csub t 2 copy cinv csub cdiv cneg /s cdef
+
+% Group structure.
+% Each transformation is a pair of (T, P) where T is a Mobius
+% transformation and P is a permutation on {0, ..., 16}.
+
+/tp.id [[1 0 0 0 0 0 1 0] 17 p_id] def
+
+/tp.mul {
+    2 dict begin
+        /T1 exch def
+        /T0 exch def
+        [T1 0 get T0 0 get mobv_mul T1 1 get T0 1 get p_mul]
+    end
+} bind def
+
+/tp.inv {
+    [exch aload pop p_inv exch mobv_inv exch]
+} bind def
+
+/tp.word {
+    tp.id exch aload length {tp.mul} repeat
+} bind def
+
+/tp.mobv {0 get} bind def
+/tp.perm {1 get} bind def
+
+/p_fixed_points {
+    [ exch
+     1 dict begin
+         dup length 1 sub 0 1 3 -1 roll {
+             /k exch def
+             dup k get k eq {k exch} if
+         } for
+         pop
+     end ]
+} bind def
+
+% Twisted Pair Group generators.
+/r [[0 0 1 0 -1 0 1 0] [15 11 7 1 14 5 2 6 13 8 10 3 4 9 12 16 0]] def
+/ru [[0 0 -1 0 beta cdiv beta s] [5 3 13 15 8 9 14 2 16 1 12 6 4 10 7 11 0]] def
+/u r tp.inv ru tp.mul def
+
+/R r tp.inv def
+/U u tp.inv def
+
+/mobv_word {
+    I exch aload length {exch mobv_mul} repeat
+} def
+
+/a [13{u}repeat] tp.word def
+/A a tp.inv def
+/c [8{U}repeat] tp.word def
+/C c tp.inv def
+/b [R a R a r A r] tp.word def
+/B b tp.inv def
+/d [R a R C r A r] tp.word def
+/D d tp.inv def
+
+/scale_from_trace {
+    % u = (1/2 * (t + sqrt(t*t - 4)))^2
+    2 copy 2 copy cmul 4 0 csub csqrt cadd 0.5 0 cmul
+    2 copy cmul
+} def
+
+A tp.mobv mobv_attractor /r0 cdef
+r0 r tp.mobv apply_mobv /r1 cdef
+r0 R tp.mobv apply_mobv /r2 cdef
+
+a tp.mobv mobv_attractor /s0 cdef
+s0 r tp.mobv apply_mobv /s1 cdef
+s0 R tp.mobv apply_mobv /s2 cdef
+
+/p0 A def
+/p1 [R A r] tp.word def
+/p2 [r A R] tp.word def
+
+/P0 p0 tp.inv def
+/P1 p1 tp.inv def
+/P2 p2 tp.inv def
+
+% Involution (permutations discarded here)
+/nn [r A R a r A] tp.word tp.mobv def
+
+0 1 nn 6 get nn 7 get csub nn 4 get nn 5 get cdiv /z0 cdef
+0 -1 nn 6 get nn 7 get csub nn 4 get nn 5 get cdiv /z1 cdef
+/gmview [1 0 z0 cneg 1 0 z1 cneg] mobv_normalize def
+
+% Obviously this isn't in the group. It just makes the image more symmetric.
+c tp.mobv mobv_fixed_points
+c tp.mobv mobv_trace scale_from_trace csqrt cneg csqrt 2 copy 1 0 4 2 roll cdiv cadd
+mnt /c0.5 exch def
+/q [R tp.mobv c0.5 4{A tp.mobv}repeat 7{C tp.mobv}repeat gmview] mobv_word def
+
+a tp.mobv mobv_trace scale_from_trace csqrt2 csqrt2 /sc cdef
+
+% Node format:
+%   [
+%     {per_node_proc}
+%     [ ...edges... ]
+%   ]
+%
+% The per_node_proc is called as
+%
+%   t per_node_proc  =  bool
+%
+% where `t` is the current Mobius transformation and the return
+% value indicates whether recursion should continue.
+%
+% Edge format:
+%   [ /node transform ]
+%
+% where the transform is a transformation and /node is the
+% name of a node.
+
+/test-points {
+    %(test-points) == flush
+    2 dict begin
+        /T exch def
+        /points exch def
+        false
+        0 2 points length 2 sub {
+            points exch 2 getinterval aload pop bbox 6 -2 roll
+            T apply_mobv bbox.contains {
+                pop true exit
+            } if
+        } for
+    end
+    %(ok) == flush
+} bind def
+
+/test-disks {
+    %(test-disks) ==
+    1 dict begin
+        /T exch def
+        true exch {
+            T disk.transform dup disk.det 0 ge {
+                % Apparently this can occur due to numerical instability.
+                % For now, we simply skip this disk.
+                pop
+            } {
+                bbox 5 -1 roll bbox.intersects-disk not {
+                    pop false exit
+                } if
+            } ifelse
+        } forall
+    end
+    %(ok) ==
+} bind def
+
+/test-points-disks {
+    2 dict begin
+        /disks exch def
+        /points exch def
+        /T exch def
+        points T test-points {
+            true
+        } {
+            disks T test-disks
+        } ifelse
+    end
+} bind def
+
+/rv [r0 r1 r2] [1 0 -0.5 0.75 sqrt 2 copy neg] mobv_from_points mobv_normalize def
+/tri_test_transform rv mobv_inv def
+
+/tri_test_points [
+    1 dict begin
+        /t tri_test_transform mobv_inv def
+        r0 t apply_mobv
+        r1 t apply_mobv
+        r2 t apply_mobv
+    end
+] def
+
+/tri_test_disks [
+    0 0 1.1 disk.centered tri_test_transform disk.transform
+] def
+
+/tri_in_bbox {
+    tri_test_points tri_test_disks test-points-disks
+} bind def
+
+r tp.mobv mobv_fixed_points 4 2 roll pop pop /sc3 cdef
+/tri-measure {
+    sc3 3 -1 roll mobv_deriv cnorm sqrt
+} bind def
+
+/tri-proc {
+    %(tri-proc) == flush
+    7 dict begin
+        aload pop
+        /v exch def
+        /c exch def
+        aload pop pop  % permutation ignored here.
+        /t exch def
+        /s t tri-measure def
+        % NOTE: the factor below may need to be tuned a bit.
+        % If things start disappearing from near the edges of
+        % the image, this is a likely culprit.
+        s 4 mul bw ge {
+            t tri_in_bbox
+        } {
+            bbox2 sc3 t apply_mobv bbox.contains
+        } ifelse {
+            s 3 mul threshold ge
+            dup not {
+                c v set-rgb
+                r0 t apply_mobv /tr0 cdef
+                r1 t apply_mobv /tr1 cdef
+                r2 t apply_mobv /tr2 cdef
+                tr0 moveto tr1 lineto tr2 lineto closepath fill
+            } if
+        } {
+            false
+        } ifelse
+    end
+    %(ok) == flush
+} bind def
+
+/hex-measure {
+    sc3 3 -1 roll mobv_deriv cnorm sqrt
+} bind def
+
+/hex-circle [0 0 0.45] rv mobv_inv amc def
+0 0 rv mobv_inv apply_mobv /hex-center cdef
+/hex-disk hex-circle aload pop disk.centered def
+
+/hex-test-points [hex-center] def
+/hex-test-disks [hex-disk] def
+
+/hex_in_bbox {
+    hex-test-points hex-test-disks test-points-disks
+} bind def
+
+/hex-proc {
+    %(hex-proc) == flush
+    4 dict begin
+        aload pop
+        /v exch def
+        pop
+        aload pop pop  % permutation ignored here.
+        /t exch def
+        /s t hex-measure def
+        s bw ge {
+            t hex_in_bbox
+        } {
+            bbox2 sc3 t apply_mobv bbox.contains
+        } ifelse {
+            s 0.75 mul threshold ge
+        } {
+            false
+        } ifelse
+    end
+    %(ok) == flush
+} bind def
+
+r2 p1 tp.mobv apply_mobv /2He0 cdef
+r1 p2 tp.mobv apply_mobv /2He1 cdef
+sc3 r tp.mobv apply_mobv /2Hsc0 cdef
+sc3 R tp.mobv apply_mobv /2Hsc1 cdef
+
+/snake_t [R A C a r A r] tp.word tp.mobv def
+/snake_test_transform q snake_t mobv_inv mobv_mul mobv_inv def
+
+/snake_test_points [
+    1 dict begin
+        0 0
+        r1 q apply_mobv
+        r2 [[a r A] tp.word tp.mobv q] mobv_word apply_mobv
+    end
+] def
+
+/snake_test_disks [
+    0 0 0.5 disk.centered rv mobv_inv disk.transform
+    dup [R c R d d d] tp.word tp.mobv disk.transform
+    0 0 0.15 disk.centered snake_test_transform disk.transform
+] def
+
+/snake_in_bbox {
+    snake_test_points snake_test_disks test-points-disks
+} bind def
+
+/snake-measure {
+    1 dict begin
+        /t exch def
+        2Hsc0 t mobv_deriv cnorm sqrt 3 mul
+        2Hsc1 t mobv_deriv cnorm sqrt 3 mul
+        2He0 t apply_mobv 2He1 t apply_mobv csub cnorm sqrt
+        max max
+    end
+} bind def
+
+/snake-proc {
+    %(snake-proc) == flush
+    4 dict begin
+        aload pop
+        /v exch def
+        pop
+        aload pop pop  % permutation ignored here.
+        /t exch def
+        /s t snake-measure def
+        s bw ge {
+            t snake_in_bbox
+        } {
+            true
+        } ifelse {
+            s 2 mul threshold ge
+        } {
+            false
+        } ifelse
+    end
+    %(ok) == flush
+} bind def
+
+/snake|-proc {
+    aload pop pop pop
+    1 dict begin
+        aload pop pop  % permutation ignored here.
+        /t exch def
+        2He0 t apply_mobv 2He1 t apply_mobv csub cnorm sqrt
+        threshold ge
+    end
+} bind def
+
+/tri|-proc {
+    1 dict begin
+        aload pop pop pop
+        aload pop pop  % permutation ignored here.
+        /t exch def
+        r1 t apply_mobv r2 t apply_mobv csub cnorm sqrt
+        threshold ge
+    end
+} bind def
+
+/colors [
+    gsave
+        0 1 16 {
+            1.25 0.55 sub mul 16 div 0.55 add
+            dup 1 ge {1 sub} if 1 1 sethsbcolor
+            [currentrgbcolor]
+        } for
+    grestore
+] def
+
+/cidx [8 0 5 15 12 6 10 2 9 13 7 4 14 16 1 3 11] p_inv def
+/colors colors cidx permute def
+
+% [x{0} ... x{n-1}] [y{0} ... y{n-1}]  -->  [x{0} + y{0} ... x{n-1} + y{n-1}]
+/vadd {
+    2 dict begin
+        /y exch def
+        /x exch def
+        [ 0 1 x length 1 sub {
+              dup x exch get
+              exch y exch get
+              add
+          } for ]
+    end
+} bind def
+
+% [x{0} ... x{n-1}] s -->  [x{0} * s ... x{n-1} * s]
+/vscale {
+    1 dict begin
+        /s exch def
+        [ exch { s mul } forall ]
+    end
+} bind def
+
+/maxv {
+    1 dict begin
+        /x exch def
+        x aload pop x length 1 sub {max} repeat
+    end
+} bind def
+
+/vfactor 0.8 def
+/maxc 0 def
+/gamma 1 def
+/maxc-factor 5 def
+
+/set-rgb {
+    2 dict begin
+        /v exch def
+        /c exch def
+        c vfactor v exp vscale
+        dup maxv maxc max userdict exch /maxc exch put
+        1 maxc-factor div vscale
+        dup maxv dup gamma exp exch div vscale
+        aload pop setrgbcolor
+    end
+} bind def
+
+/tri-color-delta {
+    2 dict begin
+        aload pop
+        /p exch def
+        /t exch def
+        colors p 0 get get
+        colors p 15 get get
+        colors p 16 get get
+        vadd vadd
+        t tri-measure 0.5 exp
+        dup 0.05 exch div add 0.1 exch div
+        vscale
+    end
+} bind def
+
+/color-update0 {} bind def
+
+/color-update1 {
+    3 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+        tp
+        tp tri-color-delta c vadd
+        v
+    end
+} bind def
+
+/color-update2 {
+    3 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+
+        tp
+
+        P1 tp tp.mul tri-color-delta
+        P2 tp tp.mul tri-color-delta
+        vadd 0.5 vscale
+        tp tri-color-delta
+        vadd
+        c vadd
+
+        v
+    end
+} bind def
+
+/color-update3 {
+    3 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+
+        tp
+
+        P0 tp tp.mul tri-color-delta
+        P1 tp tp.mul tri-color-delta
+        P2 tp tp.mul tri-color-delta
+        vadd vadd 1 3 div vscale
+        tp tri-color-delta
+        vadd
+        c vadd
+
+        v
+    end
+} bind def
+
+/flip0 [R c R] tp.word def
+
+/color-update4 {
+    3 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+
+        tp
+
+        flip0 tp tp.mul tri-color-delta
+        tp tri-color-delta
+        vadd 0.5 vscale
+        c vadd
+
+        v
+    end
+} bind def
+
+/color-update5 {
+    4 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+        /tp' P1 tp tp.mul def
+
+        tp
+
+        tp' tri-color-delta
+        flip0 tp' tp.mul tri-color-delta
+        tp tri-color-delta
+        flip0 tp tp.mul tri-color-delta
+        vadd vadd vadd 0.5 vscale
+        c vadd
+
+        v
+    end
+} bind def
+
+/color-update6 {
+    3 dict begin
+        /v exch def
+        /c exch def
+        /tp exch def
+
+        tp
+
+        P1 tp tp.mul tri-color-delta
+        P2 tp tp.mul tri-color-delta
+        vadd 0.5 vscale
+        tp tri-color-delta
+        vadd
+        c vadd
+
+        v
+    end
+} bind def
+
+/node_proc0 {
+    3 dict begin
+        /color-accum exch def
+        /dv exch def
+        /dt exch tp.word def
+        [
+            /aload cvx
+            /pop cvx
+            dv /add cvx
+            3 -1 /roll cvx
+            dt /exch cvx /tp.mul cvx
+            3 1 /roll cvx
+            color-accum cvx
+            3 /array cvx /astore cvx
+        ] cvx
+    end
+} bind def
+
+/node_def {
+    aload pop
+    2 dict begin
+        [/proc /edges] vdef
+        [
+            /proc load cvx
+            [edges {
+                 [exch aload pop node_proc0]
+             } forall]
+        ]
+    end
+    def
+} bind def
+
+/tri [
+    /tri-proc cvx
+    [
+        [/tri [p0] 0 /color-update1]
+        [/tri [p1] 0 /color-update1]
+        [/tri [p2] 0 /color-update1]
+        [/hex [] 1 /color-update0]
+    ]
+] node_def
+
+/hex [
+    /hex-proc cvx
+    [
+        [/4snake [d] 1 /color-update1]
+        [/4snake [d r] 1 /color-update1]
+        [/4snake [d R] 1 /color-update1]
+
+        [/tri [p1 d R] 0 /color-update1]
+        [/tri [p1 d] 0 /color-update1]
+        [/tri [p1 d r] 0 /color-update1]
+        [/tri [p0 d] 0 /color-update3]
+
+        [/tri| [R c p1] 0 /color-update4]
+        [/tri| [R c r p2] 0 /color-update4]
+        [/tri| [R c R p0] 0 /color-update4]
+
+        % XXX Is this color update really correct?
+        [/snake| [6{d}repeat 4{B}repeat r d] 5 /color-update0]
+        [/snake| [6{d}repeat 4{B}repeat r d R] 5 /color-update0]
+        [/snake| [6{d}repeat 4{B}repeat r d r] 5 /color-update0]
+    ]
+] node_def
+
+/4snake [
+    /hex-proc cvx
+    [
+        [/snake [] 0 /color-update0]
+        [/snake [B d] 1 /color-update0]
+        [/snake [B B d d] 2 /color-update0]
+        [/snake [B B B d d d] 3 /color-update0]
+
+        [/snake| [B d] 0 /color-update0]
+        [/snake| [B B d d] 1 /color-update0]
+        [/snake| [B B B d d d] 2 /color-update0]
+
+        [/tri| [R c p1] 0 /color-update4]
+        [/tri| [R c r p2] 0 /color-update4]
+        [/tri| [R c R p0] 0 /color-update4]
+    ]
+] node_def
+
+/snake [
+    /snake-proc cvx
+    [
+        [/tri [p0 d] 0 /color-update6]
+        [/tri [p1 d R] 0 /color-update6]
+        [/virtual-tri [r d r] 0 /color-update1]
+        [/virtual-tri [R d R] 0 /color-update1]
+
+        [/snake+-virtual-tri [R d R] 1 /color-update1]
+        [/snake++-virtual-tri [r d r] 1 /color-update1]
+    ]
+] node_def
+
+/tri| [
+    /tri|-proc cvx
+    [
+        [/tri| [p2] 0 /color-update1]
+        [/tri| [p1] 0 /color-update1]
+
+        [/snake++-virtual-tri2 [d] 1 /color-update1]
+    ]
+] node_def
+
+/snake| [
+    /snake|-proc cvx
+    [
+        [/tri| [R c P2 p1] 1 /color-update1]
+        [/tri| [R c p1 r] 1 /color-update1]
+
+        [/snake++-virtual-tri [d r] 1 /color-update4]
+    ]
+] node_def
+
+% This "virtual" /tri node with one corner and a middle is separated from /snake
+% for the sake of color computation.
+/virtual-tri [
+    {pop true}
+    [
+        [/tri [p0] 0 /color-update1]
+        [/hex [] 1 /color-update0]
+    ]
+] node_def
+
+/snake++-virtual-tri [
+    {pop true}
+    [
+        [/snake++-virtual-tri2 [d] 1 /color-update1]
+    ]
+] node_def
+
+/snake++-virtual-tri2 [
+    {pop true}
+    [
+        [/snake++ [4{d}repeat 4{B}repeat] 4 /color-update0]
+    ]
+] node_def
+
+/snake+-virtual-tri [
+    {pop true}
+    [
+        [/snake+-virtual-tri2 [d] 1 /color-update1]
+    ]
+] node_def
+
+/snake+-virtual-tri2 [
+    {pop true}
+    [
+        [/snake+ [4{d}repeat 4{B}repeat] 4 /color-update0]
+    ]
+] node_def
+
+/snake++ [
+    /snake-proc cvx
+    [
+        [/snake+ [] 0 /color-update0]
+        [/snake| [R c R d d d] 0 /color-update0]
+    ]
+] node_def
+
+/snake+ [
+    /snake-proc cvx
+    [
+        [/snake [] 0 /color-update0]
+        [/snake| [] 0 /color-update0]
+    ]
+] node_def
+
+/13snake [
+    {pop true}
+    [
+        [/snake [] 0 /color-update0]
+        [/snake [B d] 1 /color-update0]
+        [/snake [B d d] 2 /color-update0]
+        [/snake [B B d d d] 3 /color-update0]
+        [/snake [B B d d d d] 4 /color-update0]
+        [/snake [B B B d d d d d] 5 /color-update0]
+        [/snake [B B B B d d d d d d] 6 /color-update0]
+        [/snake [b D] 1 /color-update0]
+        [/snake [b D D] 2 /color-update0]
+        [/snake [b b D D D] 3 /color-update0]
+        [/snake [b b D D D D] 4 /color-update0]
+        [/snake [b b b D D D D D] 5 /color-update0]
+        [/snake [b b b b D D D D D D] 6 /color-update0]
+        [/snake| [] 0 /color-update0]
+        [/snake| [B d] 0 /color-update0]
+        [/snake| [B d d] 1 /color-update0]
+        [/snake| [B B d d d] 2 /color-update0]
+        [/snake| [B B d d d d] 3 /color-update0]
+        [/snake| [B B B d d d d d] 4 /color-update0]
+        [/snake| [B B B B d d d d d d] 5 /color-update0]
+        [/snake| [b D] 1 /color-update0]
+        [/snake| [b D D] 2 /color-update0]
+        [/snake| [b b D D D] 3 /color-update0]
+        [/snake| [b b D D D D] 4 /color-update0]
+        [/snake| [b b b D D D D D] 5 /color-update0]
+        [/snake| [b b b b D D D D D D] 6 /color-update0]
+    ]
+] node_def
+
+/process_one_node {
+    3 dict begin
+        /state exch def
+        %dup ==
+        %state ==
+        load aload pop
+        /edges exch def
+        /proc exch def
+        state proc exec {
+            edges {
+                aload pop state exch exec
+            } forall
+        } if
+    end
+} bind def
+
+/graph_recurse {
+    2 dict begin
+        % The graph callbacks can use this threshold value.
+        /threshold 72 factor div DEVICEXRESOLUTION div res mul def
+        /calls 0 def
+        mark 3 1 roll
+        {
+            dup mark eq {exit} if
+            process_one_node
+            /calls calls 1 add def
+            calls 100000 mod 0 eq {
+                calls = flush
+            } if
+        } loop
+        pop  % the mark
+        calls = flush
+    end
+} bind def
+
+/draw_point {
+    newpath
+    1 dict begin
+        /pointrad 0.5 factor div def
+        2 copy abs 100 le exch abs 100 le and {
+            2 copy exch pointrad add exch moveto
+            pointrad 0 360 arc fill
+        } {
+            pop pop
+        } ifelse
+    end
+} bind def
+
+% For debugging: to highlight a specific point
+/show {
+    1 0 0 setrgbcolor
+    view tp.mobv apply_mobv draw_point
+} bind def
+
+/res 1 setdefault
+
+/view3 [rv 17 p_id] def
+/view2 [[snake_t mobv_inv q] mobv_word 17 p_id]
+%[[1 0 0 0 0 0 1 0] [0 1 2 3 4 5 6 7 16 9 10 15 12 13 14 11 8]] tp.mul
+def
+/view2 view2
+[[1 0 b tp.mobv mobv_attractor view2 tp.mobv apply_mobv cdiv 0 0 0 0 1 0] mobv_normalize
+ 17 p_id] tp.mul
+def
+
+/view view2 def
+
+%/height 0.88276 def  % for view3
+%/height 4 def       % for view3 with /tri
+%/height 0.56888 def  % for view2
+%/height 0.35 def
+/y0 0 def
+%/x0 -7 18 div height mul def
+/x0 0 def
+%/width height 16 9 div mul def
+/width 4 def
+
+x0 y0 width set_roi_from_width
+
+%/colors [17{[1 1 1]}repeat] def
+/13snake [view [0 0 0] 0] graph_recurse
+
+[/maxc maxc] ==
+[/maxc-ratio maxc maxc-factor div] ==
+
+showpage

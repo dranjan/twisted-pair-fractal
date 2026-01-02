@@ -1,0 +1,736 @@
+%!
+
+(mydefs.ps) run
+(complex.ps) run
+(moebius.ps) run
+(disk.ps) run
+(roi.ps) run
+(stdlib.ps) run
+
+/check {
+    {
+        (  ok.) =
+    } {
+        (  not ok.) =
+        stop
+    } ifelse
+} bind def
+
+% Real numbers in PostScript aren't very precise unfortunately...
+/near-threshold 5e-7 def
+/near {
+    sub abs near-threshold lt
+} bind def
+
+/angle-near {
+    sub 180 add 360 fmod 180 sub abs near-threshold lt
+} bind def
+
+/all-near {
+    3 dict begin
+        /B exch def
+        /A exch def
+        A length B length eq check
+        0 1 A length 1 sub {
+            /k exch def
+            A k get B k get near check
+        } for
+    end
+} bind def
+
+/all-eq {
+    3 dict begin
+        /B exch def
+        /A exch def
+        A length B length eq check
+        0 1 A length 1 sub {
+            /k exch def
+            A k get B k get eq check
+        } for
+    end
+} bind def
+
+/num-pass 0 def
+/num-fail 0 def
+
+/fail {userdict /num-fail num-fail 1 add put} bind def
+/pass {userdict /num-pass num-pass 1 add put} bind def
+
+% Very rudimentary test runner.
+%
+% /some.name {proc} run-test  -->  -
+/run-test {
+    4 dict begin
+        /proc exch def
+        /name exch def
+        name =
+        {
+            % The test procedure gets a clean operand stack.
+            count array astore /stack exch def
+            % For convenience, each test gets its
+            % own dictionary.
+            gsave
+                1 dict begin
+                    {proc} stopped {
+                        (*** error running test.) =
+                        grestore stop
+                    } if
+                end
+            grestore
+            count array astore /rem exch def
+            stack aload pop
+            rem length 0 ne {
+                (*** unclean stack:) =
+                rem ==
+                flush
+                stop
+            } if
+        } stopped {
+            $error /newerror get {
+                handleerror
+                $error /newerror false put
+            } if
+            (*** test failed.) =
+            fail
+        } {
+            (test passed.) =
+            pass
+        } ifelse
+        flush
+    end
+} bind def
+
+/test.clamp.01 {
+    -2 -1 1 clamp -1 eq check
+} run-test
+
+/test.clamp.02 {
+    2 -1 1 clamp 1 eq check
+} run-test
+
+/test.clamp.03 {
+    0 -1 1 clamp 0 eq check
+} run-test
+
+/test.fmod.01 {
+    [4.5 1.25 fmod] [0.75] all-near
+} run-test
+
+/test.fmod.02 {
+    [-4.5 1.25 fmod] [0.5] all-near
+} run-test
+
+/test.csqrt2.01 {
+    [0 -1 csqrt2] [0.5 sqrt 0.5 sqrt neg] all-near
+} run-test
+
+/test.csqrt2.02 {
+    [0 1 csqrt2] [0.5 sqrt 0.5 sqrt] all-near
+} run-test
+
+/test.centered.01 {
+    0 0 1 disk.centered /C exch def
+    C disk.det -1 near check
+    C disk.radius 1 near check
+    [C disk.center] [0 0] all-near
+} run-test
+
+/test.centered.02 {
+    1 -1 2 disk.centered /C exch def
+    C disk.det -1 near check
+    C disk.radius 2 near check
+    [C disk.center] [1 -1] all-near
+} run-test
+
+/test.normalize.01 {
+    [0 2 0 0] disk.normalize [0 1 0 0] all-near
+} run-test
+
+/test.normalize.02 {
+    [1 0 0 -4] disk.normalize [0.5 0 0 -2] all-near
+} run-test
+
+/test.halfplane.01 {
+    1 0 1 1 disk.halfplane /C exch def
+    C disk.det -1 near check
+    C [0 0.5 sqrt dup dup 2 mul neg] all-near
+} run-test
+
+/test.normalize.01 {
+    [1 1 0 -2] disk.normalize disk.det -1 near check
+} run-test
+
+/test.complement.01 {
+    [1 0 0 -2] disk.complement [-1 0 0 2] all-near
+} run-test
+
+/test.intersect.01 {
+    /A 0 0 0 1 disk.halfplane def
+    /B 0 1 1.1 disk.centered def
+    A B disk.intersect check
+} run-test
+
+/test.intersect.02 {
+    /A 0 0 0 1 disk.halfplane def
+    /B 0 1 0.9 disk.centered def
+    A B disk.intersect not check
+} run-test
+
+/test.intersect.01 {
+    /A 0 0 0 1 disk.halfplane def
+    /B 0 1 1.1 disk.centered disk.complement def
+    A B disk.intersect check
+} run-test
+
+/test.intersect.02 {
+    /A 0 0 0 1 disk.halfplane def
+    /B 0 1 0.9 disk.centered disk.complement def
+    A B disk.intersect check
+} run-test
+
+/test.arc-centered.01 {
+    -2 4 5 0 90 arc.centered
+    [3 4 -2 9 -45] all-near
+} run-test
+
+/test.arc-centered.02 {
+    1 0 2 -90 90 arc.centered
+    [1 -2 1 2 -90] all-near
+} run-test
+
+/test.arc-centered.03 {
+    1 0 2 90 -90 arc.centered
+    [1 2 1 -2 -90] all-near
+} run-test
+
+/test.arc-circle-intersection.01 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r -90 90 arc.centered def
+    A x0 y0 r arc.circle-intersection-points
+    [] all-near
+} run-test
+
+/test.arc-circle-intersection.02 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 90 180 arc.centered def
+    A x0 y0 r arc.circle-intersection-points
+    [0 3 sqrt] all-near
+} run-test
+
+/test.arc-circle-intersection.03 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 90 -90 arc.centered def
+    A x0 y0 r arc.circle-intersection-points
+    [0 3 sqrt 0 3 sqrt neg] all-near
+} run-test
+
+/test.arc-circle-intersection.04 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r -180 -90 arc.centered def
+    A x0 y0 r arc.circle-intersection-points
+    [0 3 sqrt neg] all-near
+} run-test
+
+/test.arc-circle-intersection.05 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 135 -135 arc.centered def
+    A x0 y0 r arc.circle-intersection-points
+    [] all-near
+} run-test
+
+/test.arc-split.01 {
+    [[1 1 0 0 180] 2 2 arc.split]
+    dup length 2 eq check
+    aload pop
+    % NOTE: checks are in reverse order below.
+    % NOTE: testing an angle of 180 degrees is slightly
+    % subtle, as seen here.
+    dup 4 get 180 angle-near check
+    0 4 getinterval [2 2 0 0] all-near
+
+    [1 1 2 2 0] all-near
+} run-test
+
+/test.arc-split.02 {
+    [[1 1 0 0 180] -1 -1 arc.split]
+    dup length 2 eq check
+    aload pop
+    % NOTE: checks are in reverse order below.
+    [-1 -1 0 0 0] all-near
+    dup 4 get 180 angle-near check
+    0 4 getinterval [1 1 -1 -1] all-near
+} run-test
+
+/test.arc-disk.01 {
+    [0 -1 0 1 90] arc.disk
+    0 0 -1 disk.centered
+    all-near
+} run-test
+
+/test.arc-disk.02 {
+    [0 1 0 -1 -90] arc.disk
+    0 0 1 disk.centered
+    all-near
+} run-test
+
+/test.arc-disk.03 {
+    [-1 0 1 0 0] arc.disk
+    0 0 0 -1 disk.halfplane
+    all-near
+} run-test
+
+/test.arc-disk.04 {
+    [-1 0 1 0 -45] arc.disk
+    0 1 2 sqrt disk.centered
+    all-near
+} run-test
+
+/test.arc-disk.05 {
+    [0 -1 0 1 45] arc.disk
+    1 0 2 sqrt neg disk.centered
+    all-near
+} run-test
+
+/test.arc-disk.06 {
+    [1 0 0 1 -45] arc.disk
+    0 0 1 disk.centered
+    all-near
+} run-test
+
+/test.arc-disk.07 {
+    [50 50 150 50 30] arc.disk
+    100 50 3 sqrt 50 mul sub -100 disk.centered
+    all-near
+} run-test
+
+/test.arc-circle.01 {
+    [[0 -1 0 1 90] arc.circle]
+    [0 0 -1]
+    all-near
+} run-test
+
+/test.arc-circle.02 {
+    [[-1 0 1 0 -45] arc.circle]
+    [0 1 2 sqrt]
+    all-near
+} run-test
+
+/test.arc-circle.03 {
+    [[0 -1 0 1 45] arc.circle]
+    [1 0 2 sqrt neg]
+    all-near
+} run-test
+
+/test.arc-circle.04 {
+    [[1 0 0 1 -45] arc.circle]
+    [0 0 1]
+    all-near
+} run-test
+
+/test.arc-circle.05 {
+    [[50 50 150 50 30] arc.circle]
+    [100 50 3 sqrt 50 mul sub -100]
+    all-near
+} run-test
+
+/test.arc-disk-intersection.01 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r -90 90 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    length 0 eq check
+} run-test
+
+/test.arc-disk-intersection.02 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 135 -135 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    dup length 1 eq check
+    aload pop
+    A all-near
+} run-test
+
+/test.arc-disk-intersection.03 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 90 180 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    dup length 1 eq check
+    aload pop
+    [0 3 sqrt -1 0 -30] all-near
+} run-test
+
+/test.arc-disk-intersection.04 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 180 -90 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    dup length 1 eq check
+    aload pop
+    [-1 0 0 3 sqrt neg -30] all-near
+} run-test
+
+/test.arc-disk-intersection.05 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r 90 -90 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    dup length 1 eq check
+    aload pop
+    [0 3 sqrt 0 3 sqrt neg -60] all-near
+} run-test
+
+/test.arc-disk-intersection.06 {
+    /x0 -1 def
+    /y0 0 def
+    /x1 1 def
+    /y1 0 def
+    /r 2 def
+    /A x1 y1 r -135 135 arc.centered def
+    A x0 y0 r arc.disk-intersection
+    dup length 2 eq check
+    aload pop
+    % NOTE: checks in reverse order below.
+    % NOTE: the error threshold is increased for this test.
+    /near-threshold 5e-5 def
+    [0 3 sqrt 1 2 sqrt sub 2 sqrt -7.5] all-near
+    [1 2 sqrt sub 2 sqrt neg 0 3 sqrt neg -7.5] all-near
+} run-test
+
+/test.arc-transform.01 {
+    [-1 0 1 0 0]        % segment between -1 and 1
+    [1 0 0 1 1 0 0 -1]  % x -> (x + i)/(x - i)
+    arc.transform
+    [0 -1 0 1 90]       % semicircular arc from -i to i, through -1
+    all-near
+} run-test
+
+/test.arc-transform.02 {
+    [0 -1 0 1 90]       % semicircular arc from -i to i, through -1
+    [1 0 0 1 1 0 0 -1]  % x -> (x + i)/(x - i)
+    mobv_inv
+    arc.transform
+    [-1 0 1 0 0]        % segment between -1 and 1
+    all-near
+} run-test
+
+/test.arc-transform.03 {
+    [-1 -1 2 -1 0]
+    [0 1 0 0 0 0 1 0]   % CCW 90-degree rotation
+    arc.transform
+    [1 -1 1 2 0]
+    all-near
+} run-test
+
+/test.arc-length.01 {
+    [0 0 1 1 30] arc.length
+    2 sqrt 3.1415926536 3 div mul near check
+} run-test
+
+/test.disk-contains.01 {
+    /A 0 1 1.5 disk.centered def
+    0.9 2.15 A disk.contains check
+} run-test
+
+/test.disk-contains.02 {
+    /A 0 1 1.5 disk.centered def
+    0.9 2.25 A disk.contains not check
+} run-test
+
+/test.disk-contains.03 {
+    /A 0 1 1.5 disk.centered def
+    0.95 2.2 A disk.contains not check
+} run-test
+
+/test.disk-transform.01 {
+    /T [0 0 1 0 2 0] [1 1 2 1 3 1] mobv_from_points mobv_normalize def
+    /A 0 1 1.5 disk.centered def
+    /B A T disk.transform def
+    B disk.radius 1.5 near check
+    [B disk.center] [1 2] all-near
+} run-test
+
+/test.roi-length.01 {
+    -1 -1 2 2 roi.from-bbox
+    roi.length 12 near check
+} run-test
+
+/test.roi-from-bbox.01 {
+    -1 -1 2 2 roi.from-bbox
+
+    % For now, just check the number of segments
+    length 4 eq check
+} run-test
+
+/test.roi-bbox.01 {
+    [-1 -1 2 2 roi.from-bbox roi.bbox]
+    [-1 -1 2 2]
+    all-near
+} run-test
+
+/test.roi-transform.01 {
+    -1 -1 2 2 roi.from-bbox
+    [0 1 0 0 0 0 1 0] roi.transform  % CCW 90-degree rotation
+
+    % NOTE: edges are checked in reverse order here
+    aload pop
+    [-2 -1 1 -1 0] all-near
+    [-2 2 -2 -1 0] all-near
+    [1 2 -2 2 0] all-near
+    [1 -1 1 2 0] all-near
+} run-test
+
+/test.roi-disk-intersection.01 {
+    /roi 0 0 0.25 0.25 roi.from-bbox def
+    roi -1 0 2 roi.disk-intersection
+    dup length 4 eq check
+
+    dup 0 get roi 0 get all-near
+    dup 1 get roi 1 get all-near
+    dup 2 get roi 2 get all-near
+    dup 3 get roi 3 get all-near
+    pop
+} run-test
+
+/test.roi-disk-intersection.02 {
+    /roi 10 10 10.25 10.25 roi.from-bbox def
+    roi -1 0 2 roi.disk-intersection
+    length 0 eq check
+} run-test
+
+/test.roi-disk-intersection.03 {
+    /roi 0 -1 2 1 roi.from-bbox def
+    roi -1 0 2 roi.disk-intersection
+    dup length 4 eq check
+
+    % NOTE: error threshold is increased for this test.
+    /near-threshold 1e-5 def
+    dup 0 get [0 -1 3 sqrt 1 sub -1 0] all-near
+    dup 1 get [3 sqrt 1 sub -1 3 sqrt 1 sub 1 -30] all-near
+    dup 2 get [3 sqrt 1 sub 1 0 1 0] all-near
+    dup 3 get [0 1 0 -1 0] all-near
+    pop
+} run-test
+
+/test.bbox-contains.01 {
+    -1 -2 3 4 0 1 bbox.contains check
+} run-test
+
+/test.bbox-contains.02 {
+    -1 -2 3 4 -2 1 bbox.contains not check
+} run-test
+
+/test.bbox-contains.03 {
+    -1 -2 3 4 0 5 bbox.contains not check
+} run-test
+
+/test.bbox-contains.04 {
+    -1 -2 3 4 5 -3 bbox.contains not check
+} run-test
+
+/test.bbox-inverted.01 {
+    -1 -2 3 4 [1 0 2 3 0 0 1 0] mobv_normalize bbox.inverted not check
+} run-test
+
+/test.bbox-inverted.02 {
+    -1 -2 3 4 [0 0 0 1 0 1 0 0] bbox.inverted check
+} run-test
+
+/test.bbox-classify-intersection.01 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    [-1 -1 1 1 /path load 0 0 [1 0 0 0 0 0 1 0] bbox.classify-intersection]
+    [true true]
+    all-eq
+} run-test
+
+/test.bbox-classify-intersection.02 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    [-1 -1 1 1 /path load 0 0 [0.5 0 0 0 0 0 2 0] bbox.classify-intersection]
+    [true false]
+    all-eq
+} run-test
+
+/test.bbox-classify-intersection.03 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    [-1 -1 1 1 /path load 0 0 [0.5 0 1 1 0 0 2 0] bbox.classify-intersection]
+    [true true]
+    all-eq
+} run-test
+
+/test.bbox-classify-intersection.04 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    [-1 -1 1 1 /path load 0 0 [0.5 0 4 1 0 0 2 0] bbox.classify-intersection]
+    [false true]
+    all-eq
+} run-test
+
+/test.bbox-intersects.01 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    -1 -1 1 1 /path load [0 0] [0.5 0 1 1 0 0 2 0] bbox.intersects check
+} run-test
+
+/test.bbox-intersects.02 {
+    gsave
+        -2 -2 moveto 2 -2 lineto 2 2 lineto -2 2 lineto closepath
+        false upath
+    grestore
+    /path exch def
+    -1 -1 1 1 /path load [0 0] [0.5 0 4 1 0 0 2 0] bbox.intersects not check
+} run-test
+
+/test.bbox-expand.01 {
+    [-1 2 0 6 2 bbox.expand]
+    [-1.5 0 0.5 8] all-near
+} run-test
+
+% NOTE: Path coordinates are quantized by GhostScript to multiples of 1/256 or so,
+% so choosing integer coordinates for all the area computations makes the tests
+% easier to debug and more robust.
+
+/test.area.01 {
+    1 1 moveto 3 1 lineto 3 4 lineto closepath
+    area 3 near check
+} run-test
+
+/test.area.02 {
+    1 1 moveto 3 1 lineto 3 4 lineto closepath reversepath
+    area -3 near check
+} run-test
+
+/test.area.03 {
+    0 0 moveto
+    1 0 2 0 3 3 curveto
+    3 0 lineto
+    closepath
+    area -2.25 near check
+} run-test
+
+/test.area.04 {
+    0 0 moveto
+    1 1 2 2 3 6 curveto
+    3 0 lineto
+    closepath
+    reversepath
+    area 6.75 near check
+} run-test
+
+/test.area.05 {
+    /M [3 -4 4 3 6 7] def
+    0 0 M transform moveto
+    1 1 M transform
+    2 2 M transform
+    3 6 M transform curveto
+    3 0 M transform lineto
+    closepath
+    reversepath
+    area 168.75 near check
+} run-test
+
+/test.area.06 {
+    1 1 moveto 3 1 lineto 3 4 lineto closepath
+    1 -1 moveto 3 -1 lineto 3 -4 lineto
+    0 0 moveto
+    1 0 2 0 3 3 curveto
+    3 0 lineto
+    closepath
+    area 0.75 near check
+} run-test
+
+/test.bbox-intersects-circle.01 {
+    -20 -10 5 9 6 -11 1 bbox.intersects-circle not check
+} run-test
+
+/test.bbox-intersects-circle.02 {
+    -20 -10 5 9 6 -11 2 bbox.intersects-circle check
+} run-test
+
+/test.bbox-intersects-circle-complement.01 {
+    -6 -1 1 2 6 -3 12 bbox.intersects-circle-complement check
+} run-test
+
+/test.bbox-intersects-circle-complement.02 {
+    -6 -1 1 2 6 -3 14 bbox.intersects-circle-complement not check
+} run-test
+
+/test.bbox-intersects-disk.01 {
+    -20 -10 5 9 6 -11 1 disk.centered bbox.intersects-disk not check
+} run-test
+
+/test.bbox-intersects-disk.02 {
+    -20 -10 5 9 6 -11 2 disk.centered bbox.intersects-disk check
+} run-test
+
+/test.bbox-intersects-disk.03 {
+    -6 -1 1 2 6 -3 -12 disk.centered bbox.intersects-disk check
+} run-test
+
+/test.bbox-intersects-disk.04 {
+    -6 -1 1 2 6 -3 -14 disk.centered bbox.intersects-disk not check
+} run-test
+
+(passed:) =
+num-pass =
+(failed:) =
+num-fail =
+num-fail 0 gt {
+    % TODO: Do this better
+    THERE_WERE_FAILED_TESTS
+} {
+    (All tests passed.) =
+} ifelse

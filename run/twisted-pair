@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+
+import fractions
+import shlex
+import subprocess
+import tempfile
+import threading
+
+from lib.rungs import (
+    GhostScriptPool,
+    GhostScriptProcess,
+    libdir,
+    psdir,
+    ScriptRunnerBase,
+)
+
+
+class TPRunner(ScriptRunnerBase):
+    def __init__(self, scripts, device_width, device_height, **kwargs):
+        super().__init__(['twisted-pair.ps'], **kwargs)
+        self.dw = device_width
+        self.dh = device_height
+        self.parser.add_argument('--width', type=int)
+        self.parser.add_argument('--height', type=int)
+
+    def get_resolution(self, width=None, height=None):
+        if width is None and height is None:
+            width = self.defaults.width
+            height = self.defaults.height
+
+        ratio = fractions.Fraction(self.dw, self.dh)
+        if width is not None:
+            computed_height = width/ratio
+            if (height is not None and
+                height != computed_height):
+                raise RuntimeError("inconsistent resolution")
+            return (width, int(computed_height))
+        if height is not None:
+            return (int(height*ratio), height)
+        raise RuntimeError("need width or height")
+
+    def run_cell(self, output_dir, width, height, nx, ny, cellx, celly,
+                 **kwargs):
+        rw = 72 * width // self.dw
+        xmin, xmax = self.get_window(self.dw, nx, cellx)
+        ymin, ymax = self.get_window(self.dh, ny, celly)
+        return GhostScriptProcess(
+            self.scripts,
+            dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE),
+            '-r%d' % rw,
+            '-dDEVICEWIDTHPOINTS=%d' % (xmax - xmin),
+            '-dDEVICEHEIGHTPOINTS=%d' % (ymax - ymin),
+            f'-sOutputFile={output_dir}/output-{cellx:02d}-{celly:02d}.png',
+            '-sDEVICE=png16m',
+            '-dGraphicsAlphaBits=4',
+            '-dNOPAUSE',
+            '-dQUIET',
+            total_width=self.dw,
+            total_height=self.dh,
+            xmin_px=xmin,
+            ymin_px=ymin,
+            **kwargs,
+        )
+
+    def merge(self, output_dir, nx, ny):
+        images = [f'{output_dir}/output-{x:02d}-{ny-1-y:02d}.png'
+                  for y in range(ny) for x in range(nx)]
+        args = [
+            'montage',
+            *images,
+            '-mode', 'Concatenate',
+            '-tile', f'{nx}x{ny}',
+            '../out/output.png',
+        ]
+        cmdline = ' '.join(shlex.quote(arg) for arg in args)
+        print(f"Executing: {cmdline}")
+        subprocess.check_call(args, cwd=psdir)
+
+    @staticmethod
+    def get_window(size, num_cells, cell):
+        cell_size = size//num_cells
+        wmin = cell_size*cell
+        wmax = min(cell_size*(cell + 1), size)
+        return wmin, wmax
+
+    def main(self):
+        args = self.parser.parse_args()
+        try:
+            (libdir.parent.parent / 'out').mkdir(exist_ok=True)
+            args.width, args.height = \
+                self.get_resolution(args.width, args.height)
+            cells = [(x, y) for x in range(args.nx) for y in range(args.ny)]
+        except RuntimeError as e:
+            self.parser.error(e)
+        pool = GhostScriptPool()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            print(f"Writing subimages to {tmpdir}")
+            with pool:
+                for x, y in cells:
+                    proc = self.run_cell(tmpdir, cellx=x, celly=y, **vars(args))
+                    pool.add(f'({x},{y})', proc)
+            self.merge(tmpdir, args.nx, args.ny)
+
+
+runner = TPRunner(['twisted-pair.ps'], 384, 216, height=1080)
+runner.parser.add_argument('--res', type=float, default=1)
+runner.parser.add_argument('--nx', type=int, default=8)
+runner.parser.add_argument('--ny', type=int, default=4)
+runner.main()

@@ -1,0 +1,35 @@
+%!
+
+% A permutation is represented as an array:
+% [s_1 s_2 ... s_n]
+% (The s_k should be 0, 1, ..., n-1 in some permutation.)
+
+% n p_id -> [0 1 ... n-1]
+/p_id {
+    [ 0 1 4 -1 roll 1 sub { } for ]
+} bind def
+
+% a s p_mul -> s(a)
+/p_mul {
+    [ 3 1 roll
+    {
+        exch dup 3 -1 roll get exch
+    } forall
+    pop ]
+} bind def
+
+% Semantically different from p_mul in that it is meant to be applied
+% to an arbitrary array of the right size
+/permute //p_mul def
+
+% s p_inv -> s^-1
+/p_inv {
+    2 dict begin
+    /s exch def
+    s length array
+    0 1 s length 1 sub {
+        /k exch def
+        dup s k get k put
+    } for
+    end
+} bind def

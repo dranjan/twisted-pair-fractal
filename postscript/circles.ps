@@ -1,0 +1,64 @@
+%!
+
+% A circle is represented as [x y r] (center coordinates and radius)
+
+% x y r circle -> <circle with center (x, y) and radius r>
+% constructor
+/circle { [ 4 1 roll ] } bind def
+
+% C getx -> <x-coordinate of center of C>
+% C gety -> <y-coordinate of center of C>
+% C getr -> <radius of C>
+% C getc -> <x-coord. of C> <y-coord. of C>
+% deconstructors
+/getx { aload pop pop pop } bind def
+/gety { aload pop 3 -1 roll pop pop } bind def
+/getr { aload pop 3 1 roll pop pop } bind def
+/getc { aload pop pop } bind def
+
+% C render_circle -> - 
+% to draw a circle
+/render_circle {
+    dup getx 1 index getr add 1 index gety moveto
+    aload pop 0 360 arc closepath
+} bind def
+
+% cR cA invert cB
+% cB is the inversion of cA about cR.
+/invert {
+    %countdictstack ==
+    3 dict begin
+    /cA exch def
+    /cR exch def
+    %cA == cR ==
+    /alpha
+        cR getr dup mul
+        cA getx cR getx sub dup mul
+        cA gety cR gety sub dup mul
+        cA getr dup mul
+    sub add div
+    def
+
+    %alpha ==
+    
+        cR getx alpha cA getx cR getx sub mul add
+        cR gety alpha cA gety cR gety sub mul add
+        cA getr alpha mul
+    circle
+    end
+} bind def
+
+% the unit circle
+/unit_circle [0 0 1] def
+
+% an internal variable for the next function
+% to avoid creating excess arrays
+/static_array_0 [1 0  -1 0  0 1] def
+
+% [x0 y0  x1 y1  x2 y2] circle_from_points  [x y r]
+% defines a circle by specifying three points it passes through.
+% requires the moebius module.
+/circle_from_points {
+    static_array_0 mobv_from_points mobv_inv
+    unit_circle exch apply_mobv_to_circle
+} bind def

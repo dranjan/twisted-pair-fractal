@@ -1,0 +1,162 @@
+%!
+
+% layout: [c00 c01x c01y c11]
+% where the matrix C is
+%
+%    c00          c01x + c01y
+%    c01x - c01y  c11
+%
+% to define the disk as the locus of z satisfying
+%
+%    conj(zv) * C * zv <= 0,
+%
+% where zv is the vector
+%
+%    z
+%    1.
+/disk {
+    [5 1 roll]
+} bind def
+
+% x y disk  -->  bool
+%
+% Determine if a point lies within the generalized disk.
+/disk.contains {
+    3 dict begin
+        /C exch def
+        /y exch def
+        /x exch def
+        x dup mul y dup mul add C 0 get mul
+        x C 1 get mul dup add
+        y C 2 get mul dup add
+        C 3 get
+        add add add 0 le
+    end
+} bind def
+
+/disk.det {
+    1 dict begin
+        /C exch def
+        C 0 get C 3 get mul C 1 get dup mul C 2 get dup mul add sub
+    end
+} bind def
+
+/disk.normalize {
+    1 dict begin
+        dup disk.det neg sqrt 1 exch div /f exch def
+        [ exch aload pop 4 {f mul 4 1 roll} repeat ]
+    end
+} bind def
+
+% cx cy r disk.centered  -->  disk_array
+%
+% Obtain the proper disk centered at cx + cy*i with radius r.
+% (A negative radius can be given, which will instead provide
+% the complement of the disk with radius r.)
+/disk.centered {
+    3 dict begin
+        /r exch def
+        /cy exch def
+        /cx exch def
+        1 r div
+        cx r div neg cy r div neg
+        cx dup mul cy dup mul add r div r sub
+        disk
+    end
+} bind def
+
+% cx cy vx vy disk.halfplane  -->  disk_array
+%
+% Obtain the half-plane whose boundary line passes through
+% cx + cy*i and has outward normal vx + vy*i.
+/disk.halfplane {
+    4 dict begin
+        /vy exch def
+        /vx exch def
+        /cy exch def
+        /cx exch def
+        vx dup mul vy dup mul add sqrt dup vx exch div exch vy exch div
+        /vy exch def /vx exch def
+        0
+        vx vy
+        vx cx mul dup add vy cy mul dup add add neg
+        disk
+    end
+} bind def
+
+/disk.center {
+    1 dict begin
+        /C exch def
+        C 1 get C 0 get div neg
+        C 2 get C 0 get div neg
+    end
+} bind def
+
+/disk.curvature {
+    dup 0 get exch disk.det neg sqrt div
+} bind def
+
+/disk.radius {
+    1 exch disk.curvature div
+} bind def
+
+/disk.complement {
+    [
+        exch aload pop
+        4 {neg 4 1 roll} repeat
+    ]
+} bind def
+
+% disk0 disk1  -->  bool
+%
+% Determine if two generalized disks intersect.
+% Assumption: both disks are normalized.
+/disk.intersect {
+    6 dict begin
+        /B exch def
+        /A exch def
+        /C00 A 0 get B 0 get add def
+        /C01x A 1 get B 1 get add def
+        /C01y A 2 get B 2 get add def
+        /C11 A 3 get B 3 get add def
+        C00 C11 add 0 le {
+            true
+        } {
+            C00 C11 mul C01x dup mul C01y dup mul add sub 0 le
+        } ifelse
+    end
+} bind def
+
+% disk trans  -->  disk'
+%
+% Transform a disk by a Mobius transformation.
+/disk.transform {
+    20 dict begin
+        aload pop
+        /v00y exch def /v00x exch def
+        neg /v10y exch def neg /v10x exch def
+        neg /v01y exch def neg /v01x exch def
+        /v11y exch def /v11x exch def
+
+        aload pop
+        /c11 exch def
+        /c01y exch def
+        /c01x exch def
+        /c00 exch def
+
+        /w00x c00 v00x mul c01x v10x mul c01y v10y mul sub add def
+        /w00y c00 v00y mul c01x v10y mul c01y v10x mul add add def
+        /w01x c00 v01x mul c01x v11x mul c01y v11y mul sub add def
+        /w01y c00 v01y mul c01x v11y mul c01y v11x mul add add def
+        /w10x c01x v00x mul c01y v00y mul add c11 v10x mul add def
+        /w10y c01x v00y mul c01y v00x mul sub c11 v10y mul add def
+        /w11x c01x v01x mul c01y v01y mul add c11 v11x mul add def
+        /w11y c01x v01y mul c01y v01x mul sub c11 v11y mul add def
+
+        v00x w00x mul v00y w00y mul add v10x w10x mul v10y w10y mul add add
+        v00x w01x mul v00y w01y mul add v10x w11x mul v10y w11y mul add add
+        v00x w01y mul v00y w01x mul sub v10x w11y mul v10y w11x mul sub add
+        v01x w01x mul v01y w01y mul add v11x w11x mul v11y w11y mul add add
+        disk
+    end
+} bind def

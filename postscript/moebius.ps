@@ -1,0 +1,397 @@
+% This package provides Moebius transformations.
+% A Moebius transformation is properly a transformation,
+% i.e., it behaves as expected when executed on the operand
+% stack. Moreover, it is represented in a way that makes it
+% easy to manipulate, e.g., to invert or compose with other
+% transformations. 
+
+/make_mobv { [9 1 roll] } bind def
+
+/mobv_identity { 1 0  0 0  0 0  1 0  //make_mobv } def
+
+% x y v apply_mobv x' y'
+%
+% internal utility
+% 
+/apply_mobv {
+    1 dict begin
+    /v exch def
+    
+    2 copy v 0 get v 1 get cmul v 2 get v 3 get cadd
+    4 2 roll v 4 get v 5 get cmul v 6 get v 7 get cadd
+    cdiv
+    
+    end
+} bind def
+
+% x y v mobv_deriv x' y'
+%
+% the derivative at this point
+/mobv_deriv {
+    1 dict begin
+    /v exch def
+
+    v 0 get v 1 get v 6 get v 7 get cmul
+    v 2 get v 3 get v 4 get v 5 get cmul
+    csub
+    4 2 roll v 4 get v 5 get cmul v 6 get v 7 get cadd
+    2 copy cmul cdiv
+
+    end
+} bind def
+
+% [x y r] v apply_mobv_to_circle [x' y' r']
+%
+% computes the image of a circle under a moebius transformation
+/apply_mobv_to_circle {
+    2 dict begin
+    /v exch def
+    /C exch def
+
+    [
+        %C getr 0 v 0 get v 1 get v 6 get v 7 get cmul
+        C getr v 0 get v 1 get v 6 get v 7 get cmul %<-
+        v 2 get v 3 get v 4 get v 5 get cmul
+            csub
+            cnorm sqrt %<-
+            mul
+            
+        C getx C gety v 0 get v 1 get cmul v 2 get v 3 get cadd
+        C getx C gety v 4 get v 5 get cmul v 6 get v 7 get cadd conj
+        cmul
+        C getr dup mul 0 v 0 get v 1 get v 4 get v 5 get conj cmul cmul
+        csub
+        
+        C getx C gety v 4 get v 5 get cmul v 6 get v 7 get cadd cnorm
+        C getr 0 v 4 get v 5 get cmul cnorm
+        sub %0
+
+        %2 copy 8 2 roll cdiv 6 2 roll 4 2 roll cdiv cnorm sqrt
+        dup 5 1 roll 0 cdiv 4 2 roll exch div
+    ]
+
+    end
+} bind def
+
+/mobv_det {
+    1 dict begin
+    /v exch def
+
+    v 0 get v 1 get v 6 get v 7 get cmul
+    v 2 get v 3 get v 4 get v 5 get cmul
+    csub
+    
+    end
+} bind def
+
+/mobv_trace {
+    1 dict begin
+    /v exch def
+    v 0 get v 1 get v 6 get v 7 get cadd
+    end
+} bind def
+
+/mobv_normalize {
+    2 dict begin
+    /v exch def
+    v mobv_det csqrt /sdy exch def /sdx exch def
+
+    [v 0 get v 1 get sdx sdy cdiv v 2 get v 3 get sdx sdy cdiv
+    v 4 get v 5 get sdx sdy cdiv v 6 get v 7 get sdx sdy cdiv]
+    end
+} bind def
+    
+% v1 v2 mobv_mul v1*v2
+/mobv_mul {
+    2 dict begin
+    /v2 exch def
+    /v1 exch def
+    [
+        v1 0 get v1 1 get v2 0 get v2 1 get cmul
+        v1 2 get v1 3 get v2 4 get v2 5 get cmul
+        cadd
+        v1 0 get v1 1 get v2 2 get v2 3 get cmul
+        v1 2 get v1 3 get v2 6 get v2 7 get cmul
+        cadd
+        v1 4 get v1 5 get v2 0 get v2 1 get cmul
+        v1 6 get v1 7 get v2 4 get v2 5 get cmul
+        cadd
+        v1 4 get v1 5 get v2 2 get v2 3 get cmul
+        v1 6 get v1 7 get v2 6 get v2 7 get cmul
+        cadd
+    ]
+    end
+} bind def
+
+% v1 mobv_inv v1^(-1)
+/mobv_inv {
+    1 dict begin
+    /v exch def
+
+    [
+        v 6 get v 7 get        v 2 get v 3 get cneg
+        v 4 get v 5 get cneg   v 0 get v 1 get
+    ]
+    end
+} bind def
+
+% [a0x a0y  a1x a1y  a2x a2y] [b0x b0y  b1x b1y  b2x b2y]
+% mobv_from_points
+% [ax ay  bx by  cx cy  dx dy]
+%
+% A Moebius transformation is determined completely by
+% its action on three points. This creates a Moebius
+% transformation given its action on three points
+% (the a's are sent to the corresponding b's).
+% In practice, this is probably the most useful constructor
+% of a Moebius transformation.
+/mobv_from_points {
+    5 dict begin
+    /b exch def
+    /a exch def
+    /X [6 2 10 {
+        /i exch def
+        a i 2 sub 6 mod get a i 1 sub 6 mod get
+        b i 2 sub 6 mod get b i 1 sub 6 mod get
+        cmul
+        a i 2 add 6 mod get a i 3 add 6 mod get
+        b i 2 add 6 mod get b i 3 add 6 mod get
+        cmul
+        csub
+    } for ] def
+    /Y [6 2 10 {/i exch def
+        a i 2 add 6 mod get a i 3 add 6 mod get
+        b i 2 sub 6 mod get b i 1 sub 6 mod get
+        cmul
+        a i 2 sub 6 mod get a i 1 sub 6 mod get
+        b i 2 add 6 mod get b i 3 add 6 mod get
+        cmul
+        csub
+    } for ] def
+
+    [
+        % a:
+        6 2 10 {
+            /i exch def
+            b i 6 mod get b i 1 add 6 mod get
+            X i 6 mod get X i 1 add 6 mod get
+            cmul
+        } for
+        cadd cadd
+
+        % b:
+        6 2 10 {
+            /i exch def
+            a i 6 mod get a i 1 add 6 mod get
+            b i 6 mod get b i 1 add 6 mod get
+            Y i 6 mod get Y i 1 add 6 mod get
+            cmul cmul
+        } for
+        cadd cadd
+
+        % c:
+        6 2 10 {
+            /i exch def
+            Y i 6 mod get Y i 1 add 6 mod get
+        } for
+        cadd cadd
+
+        % d:
+        6 2 10 {
+            /i exch def
+            a i 6 mod get a i 1 add 6 mod get
+            X i 6 mod get X i 1 add 6 mod get
+            cmul
+        } for
+        cadd cadd
+    ]
+    
+    end
+} bind def
+
+% v mobv_fixed_points  a_x a_y b_x b_y
+%
+% a_x a_y  and  b_x b_y  are the fixed points of v.
+/mobv_fixed_points {
+    3 dict begin
+    /v exch def
+    v mobv_det /d_y exch def /d_x exch def
+    v 0 get v 1 get v 6 get v 7 get csub
+    v 0 get v 1 get v 6 get v 7 get cadd 2 copy cmul
+        d_x d_y 4 0 cmul csub
+    csqrt
+    4 copy cadd v 4 get v 5 get 2 0 cmul cdiv
+    6 2 roll csub v 4 get v 5 get 2 0 cmul cdiv
+    end
+} bind def
+
+% zx zy  wx wy  tx ty
+% mobv_from_nodes_and_trace
+% [ax ay  bx by  cx cy  dx dy]
+%
+% gives a mobius transformations with fixed points z, w
+% and trace t. z and w should be distinct; otherwise,
+% division by zero will occur.
+/mobv_from_nodes_and_trace {
+    8 dict begin
+    /ty exch def /tx exch def
+    /wy exch def /wx exch def
+    /zy exch def /zx exch def
+
+    tx ty 2 copy cmul 4 0 csub csqrt
+    zx zy wx wy csub cdiv
+    /cy exch def /cx exch def
+
+    [
+        % a:
+        tx ty cx cy zx zy wx wy cadd cmul cadd 2 0 cdiv
+
+        % b:
+        cx cy cneg zx zy wx wy cmul cmul
+
+        % c:
+        cx cy
+
+        % d:
+        tx ty cx cy zx zy wx wy cadd cmul csub 2 0 cdiv
+    ]
+    end
+} bind def
+
+% v mobv_attractor  ax ay
+%
+% Find the attracting fixed point of a hyperbolic
+% Mobius transformation.
+/mobv_attractor {
+    5 dict begin
+        /t exch def
+        t mobv_fixed_points
+        /z1y exch def /z1x exch def /z0y exch def /z0x exch def
+        t 4 get t 5 get z0x z0y cmul t 6 get t 7 get cadd cnorm
+        1 gt {z0x z0y} {z1x z1y} ifelse
+    end
+} bind def
+
+% v mobv_repulsor  ax ay
+%
+% Find the repelling fixed point of a hyperbolic
+% Mobius transformation.
+/mobv_repulsor {mobv_inv mobv_attractor} bind def
+
+% ax ay bx by cx cy dx dy  make_mobT  T
+%
+% outputs an *executable packed array*. 
+% The first element of this array is the array of coefficients
+% of the transformation. The second element is --apply_mobv--.
+% (This information is relevant if one wants to transform these
+% functions efficiently.)
+/make_mobT { [ 9 1 roll ] /apply_mobv load 2 packedarray cvx } bind def
+
+% T1 T2 mobTmul T1*T2
+%
+% The input is two mobius transformations, i.e., functions.
+% The output is the composition of the two transformations.
+/mobT_mul { 0 get exch 0 get exch mobv_mul make_mobT } bind def
+
+% T mobT_inv T'
+%
+% Input: moebius transformation; output: the inverse.
+/mobT_inv { 0 get mobv_inv make_mobT } bind def
+
+% T S mobT_conjugate <S*T*S^(-1)>
+/mobT_conjugate {
+} bind def
+
+% T S mobT_revconjugate <S^(-1)*T*S>
+/mobT_rev_conjugate {
+} bind def
+
+% [a0x a0y  a1x a1y  a2x a2y] [b0x b0y  b1x b1y  b2x b2y]
+% mobT_from_points
+% T
+%
+% A Moebius transformation is determined completely by
+% its action on three points. This creates a Moebius
+% transformation given its action on three points
+% (the a's are sent to the corresponding b's).
+% In practice, this is probably the most useful constructor
+% of a Moebius transformation.
+/mobT_from_points {
+    ??? dict begin
+    /b exch def
+    /a exch def
+    /X [6 2 10 {
+        /i exch def
+        a i 2 sub 6 mod get a i 1 sub 6 mod get
+        b i 2 sub 6 mod get b i 1 sub 6 mod get
+        cmul
+        a i 2 add 6 mod get a i 3 add 6 mod get
+        b i 2 add 6 mod get b i 3 add 6 mod get
+        cmul
+        csub
+    } for ] def
+    /Y [6 2 10 {/i exch def
+        a i 2 add 6 mod get a i 3 add 6 mod get
+        b i 2 sub 6 mod get b i 1 sub 6 mod get
+        cmul
+        a i 2 sub 6 mod get a i 1 sub 6 mod get
+        b i 2 add 6 mod get b i 3 add 6 mod get
+        cmul
+        csub
+    } for ] def
+
+    % a:
+    6 2 10 {
+        /i exch def
+        b i 6 mod get b i 1 add 6 mod get
+        X i 6 mod get X i 1 add 6 mod get
+        cmul
+    } for
+    cadd cadd
+
+    % b:
+    6 2 10 {
+        /i exch def
+        a i 6 mod get a i 1 add 6 mod get
+        b i 6 mod get b i 1 add 6 mod get
+        Y i 6 mod get Y i 1 add 6 mod get
+        cmul cmul
+    } for
+    cadd cadd
+
+    % c:
+    6 2 10 {
+        /i exch def
+        Y i 6 mod get Y i 1 add 6 mod get
+    } for
+    cadd cadd
+
+    % d:
+    6 2 10 {
+        /i exch def
+        a i 6 mod get a i 1 add 6 mod get
+        X i 6 mod get X i 1 add 6 mod get
+        cmul
+    } for
+    cadd cadd
+
+    make_mobT
+    end
+} bind def
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% some utilities
+
+% cx cy make_mobTcmul T
+% a transformation that is multiplication by a constant
+/make_mobTcmul { 0 0 0 0 1 0 make_mobT } bind def
+
+% cx cy make_mobTcadd T
+% addition by a constant
+/make_mobTcadd { 0 0 1 0 1 0 8 2 roll make_mobT } bind def
+
+% zero_x zero_y one_x one_y  make_mobTrdiv
+% inversion relative to a "zero" point and a "one" point
+/make_mobTrdiv {
+    % 
+} bind def
