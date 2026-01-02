@@ -37,43 +37,50 @@ there is a suite of tests:
 - `test-graphics.ps`: some graphics-dependent tests that I couldn't
   fully automate.
 
-# Reflections
+# On PostScript
 
 This section is for people who are PostScript-curious and considering using it
-for their own fractal art projects. My short recommendation is that if
-you're on the fence, go ahead and use it, assuming your idea fits nicely
-in the vector graphics paradigm. However, if it doesn't (e.g., if you
-need to have more control over the color of individual pixels), then
-PostScript may not offer any particular advantages over other more
-conventional languages.
+for their own fractal art projects.
 
-[XXX rewrite this]
-You might be wondering why I chose PostScript for this work. It's a valid
-question without a very satisfying answer. To be clear I don't think it's a *wrong*
-choice, but I wouldn't say it's necessarily the *best* choice, even for the
-algorithm I chose to implement. Ultimately it just comes down to historical accident
-because I followed an incremental path from some other work I had already done in
-PostScript.
+PostScript is vector graphics.
+Any kind of 2D graphics you want to make that can be broken down into
+simple primitives like points, lines, circles, triangles, squares, curves,
+or pretty much any shape you could dream of, you can probably accomplish
+in PostScript without too much trouble.
+That covers a pretty wide variety of fractals.
+What *doesn't* fit nicely is doing any computations at the
+pixel level, because the concept of a pixel doesn't fit very naturally
+in vector graphics.
+You can make it work, but PostScript probably won't have
+any advantages over other languages then.
 
-That being said, if you want to use PostScript
-for your own fractals, I definitely don't want to dissuade you. It's well suited to
-a pretty wide range of fractals, and it can be be very fun and rewarding to work
-with. However, there are a few things you might want to be aware of.
+Thus, my short recommendation is that if you're on the fence and the
+vector graphics paradigm
+makes sense for your fractal, go ahead and use it.
+However, there are some things you might want to be aware of.
 
 - PostScript isn't quite a general-purpose language and thus lacks many
   of the niceties that may be familiar from other programming environments. For example,
   while PostScript has strings (indeed, rendering text being one of the main things
-  it's used for in the real world), its support of manipulating strings is very
-  lacking. Also, the debugging experience is also quite poor. Those things
+  it's used for in the real world), its support for manipulating strings is very
+  lacking. Also, the debugging experience is quite poor. Those things
   could actually be addressed pretty comprehensively in third-party libraries,
   but PostScript's lack of a good module system is again an annoyance there.
 - As another important example of the previous point, PostScript doesn't
   have any concept of user-defined types. (It's less clear to me how this would
   be addressed properly even in a hypothetical third-party library.)
-- PostScript only offers single-precision floating point precision.
+- PostScript only offers single-precision floating point.
   While internal computations may use double precision, sometimes that just isn't
   good enough. Generally speaking, this limitation can be worked around by choosing
   algorithms wisely, but that can be easier said than done. For example, for this
-  project, certain choices that I made very early ended up being very consequential
+  project, certain early design decisions that seemed inoccuous at the time
+  ended up being very consequential
   much later at a point where a full rewrite was impractical.
 - Performance isn't great compared to compiled languages.
+
+To be clear, when we're talking about a fractal art project,
+those things aren't necessarily dealbreakers.
+Using PostScript for such a project can be a fun and rewarding experience,
+and thus I (cautiously) recommend it.
+That said, I wouldn't recommend it for "serious" work like
+running a business or driving your car, since it's really not meant for that.
