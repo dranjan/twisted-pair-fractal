@@ -39,48 +39,68 @@ there is a suite of tests:
 
 # On PostScript
 
-This section is for people who are PostScript-curious and considering using it
-for their own fractal art projects.
+PostScript is a pretty neat language and a good fit for many types of
+fractal visualizations, due to its simple, elegant, and expressive syntax and its
+convenient and intuitive 2D vector graphics
+capabilities. However, it is at its heart a _page description language_ and
+not quite a general-purpose programming language, so some things you may be
+used to in more conventional programming languages are lacking or completely missing:
 
-PostScript is vector graphics.
-Any kind of 2D graphics you want to make that can be broken down into
-simple primitives like points, lines, circles, triangles, squares, curves,
-or pretty much any shape you could dream of, you can probably accomplish
-in PostScript without too much trouble.
+- string manipulation (although strings themselves are there),
+- user-defined types,
+- any sane debugging facilities,
+- any reasonable module system,
+- double-precision floating point,
+
+_et cetera_. That said, those things don't need to be deal breakers for many
+fractal art projects. For this project, the only one of those
+shortcomings
+that ended up being a real hindrance was the lack of double-precision floating point,
+and to be fair, that could have been largely mitigated by choosing a better data
+representation. But I made that choice at the beginning of the project,
+and I had to do it without being able to define my own type, so I na&iuml;vely did it
+with poor encapsulation, and thus when it became clear that there was a problem,
+making the change I really wanted was just too hard and I had to find another way.
+The poor debuggability also made it much harder to find such problems in
+the first place. Thus, maybe you can see how these shortcomings of the underlying
+programming language can compound on each other to create real problems.
+All that being said, there are always ways to get around the problems, and ultimately
+it can be really fun and rewarding to code 2D graphics in PostScript, particularly
+fractals in my opinion.
+
+The other part of this I want to emphasize is that PostScript is for *vector graphics.*
+That means it's well suited when you can break down your graphics problem into
+simple primitive shapes like line segments, circles, polygons, etc.
 That covers a pretty wide variety of fractals.
-What *doesn't* fit nicely is doing any computations at the
-pixel level, because the concept of a pixel doesn't fit very naturally
-in vector graphics.
-You can make it work, but PostScript probably won't have
-any advantages over other languages then.
+However, it's not well suited to doing
+computations at "pixel-level," because the concept of a pixel doesn't fit naturally
+in the vector graphics paradigm.
+As soon as the
+definition of a pixel becomes important, PostScript's own graphics capabilities
+become a lot less useful.
 
-Thus, my short recommendation is that if you're on the fence and the
-vector graphics paradigm
-makes sense for your fractal, go ahead and use it.
-However, there are some things you might want to be aware of.
+Here are some examples of fractals that thus generally aren't a good
+fit for PostScript.
 
-- PostScript isn't quite a general-purpose language and thus lacks many
-  of the niceties that may be familiar from other programming environments. For example,
-  while PostScript has strings (indeed, rendering text being one of the main things
-  it's used for in the real world), its support for manipulating strings is very
-  lacking. Also, the debugging experience is quite poor. Those things
-  could actually be addressed pretty comprehensively in third-party libraries,
-  but PostScript's lack of a good module system is again an annoyance there.
-- As another important example of the previous point, PostScript doesn't
-  have any concept of user-defined types. (It's less clear to me how this would
-  be addressed properly even in a hypothetical third-party library.)
-- PostScript only offers single-precision floating point.
-  While internal computations may use double precision, sometimes that just isn't
-  good enough. Generally speaking, this limitation can be worked around by choosing
-  algorithms wisely, but that can be easier said than done. For example, for this
-  project, certain early design decisions that seemed inoccuous at the time
-  ended up being very consequential
-  much later at a point where a full rewrite was impractical.
-- Performance isn't great compared to compiled languages.
+1. Most fractals arising from complex dynamics, like the Mandelbrot set and related
+   constructions. For those you typically iterate over all the pixels in the image
+   and do some computation on the coordinates of each pixel.
+2. More generally, any fractal you define on a point-by-point basis by computing the
+   color value as a function of a point's coordinates.
+3. My own ["Super Apollonian"](https://github.com/dranjan/super-apollonian-cpp) fractal.
+   This one's more subtle because you'd normally think it would be perfectly suited
+   to vector graphics,
+   being defined as basically a collection of filled circles,
+   but to get a good result it turns out it's very helpful to know exactly how much of
+   each circle falls within each pixel. Actually, the first version of that fractal
+   was written in PostScript, and I rewrote it in C++ for exactly that reason.
+4. More generally, any fractal rendering algorithm that needs to know what a pixel is.
+   The alternate algorithm mentioned near the end of the top-level README would be
+   another good example of that, and thus if I decided to pursue that, I most likely
+   wouldn't do it PostScript.
 
-To be clear, when we're talking about a fractal art project,
-those things aren't necessarily dealbreakers.
-Using PostScript for such a project can be a fun and rewarding experience,
-and thus I (cautiously) recommend it.
-That said, I wouldn't recommend it for "serious" work like
-running a business or driving your car, since it's really not meant for that.
+In such cases, PostScript's built-in graphics facilities might not be much help
+at all.
+You can certainly make it work, but it
+probably doesn't have any particular advantages over more conventional languages...unless
+you just really like the syntax, and I wouldn't blame you for that.

@@ -32,7 +32,7 @@ ImageMagick to assemble the output image.
 
 The main implementation is under `postscript` and is written in, as you
 might also have guessed, the PostScript programming language. More
-details are explained in that directory's `README.md`.
+details are explained in that directory's [`README.md`](postscript/README.md).
 
 ### Testing
 
@@ -42,14 +42,23 @@ details are explained in that directory's `README.md`.
 ## Theory
 
 Some of the theory is developed and explained in a Sage notebook under `nb`. That
-directory's `README` has information on how to interact with the
+directory's [`README`](nb/README) has information on how to interact with the
 notebook. That document was co-developed with the fractal itself and was
 an integral part my development process, i.e., what you see there are
 actual computations I had to do, whose results were incorporated into
-the PostScript implementation. The only real exception is the
-fundamental root (`rho_x rho_y` in the code), which I had computed using
-ad-hoc means much earlier to prove the concept, before I knew how to use
-Sage.
+the PostScript implementation. Most of the "magic numbers" you see
+in the PostScript code
+are derived in that Sage notebook.
+For full disclosure,
+I actually did compute the
+fundamental root (`rho_x rho_y` in the code) by ad-hoc means long
+before I started that Sage
+notebook, but the result is fully reconstructed in the notebook.
+
+Unfortunately, it's much harder to explain how I came up with the
+"twisted pair polynomial" itself. It was sort of a leap of intuition
+I made knowing the general shape of what I thought it would lead to,
+but not a very clear idea.
 
 ## History
 
@@ -57,7 +66,7 @@ I started this work around 2008 but only got as far as computing the
 fundamental root and proving the concept of the fractal with a hacky
 probabilistic algorithm implemented in PostScript. Unfortunately, there
 was no clear route from there to a real implementation, so I got stuck
-and set the project aside. In 2024, I finally picked it back up, found
+and set the project aside. In 2024, I finally picked it back up, figured out
 a good way to visualize it, and completed the implementation, which you see
 here. Since 2024, I've done some minor cleanup and refactoring.
 
@@ -81,7 +90,7 @@ nutshell, the new algorithm computes a tuple of fractal measures on the
 Riemann sphere as an eigenvector of a linear operator defined in terms
 of the symmetry group of the fractal. The component measures of that
 tuple give the contribution of each primary color to each pixel (or
-arbitrary measurable set, mathematically speaking). To solve the eigevnalue
+arbitrary measurable set, mathematically speaking). To solve the eigenvalue
 problem, we need to discretize the domain, with coarser discretizations
 being less accurate but easier to solve. However, the solution at a coarser
 discretization should give a good starting guess for a finer discretization,
@@ -91,7 +100,7 @@ using, say, the power method.)
 # License
 
 This software is licensed under the terms of the GNU General Public
-License, version 3.  See the file `COPYING` for details.
+License, version 3.  See the file [`COPYING`](./COPYING) for details.
 
 # Credits
 
