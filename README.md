@@ -97,11 +97,11 @@ discretization should give a good starting guess for a finer discretization,
 which should allow us to bootstrap an accurate solution very efficiently
 using, say, the power method.)
 
-# License
+## License
 
 This software is licensed under the terms of the GNU General Public
 License, version 3.  See the file [`COPYING`](./COPYING) for details.
 
-# Credits
+## Credits
 
 Author: Darsh Ranjan
