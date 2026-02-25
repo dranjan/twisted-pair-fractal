@@ -238,7 +238,7 @@ a tp.mobt mobt.trace scale-from-trace csqrt csqrt /sc cdef
 %
 % The per_node_proc is called as
 %
-%   state per_node_proc  =  bool
+%   state per_node_proc  -->  bool
 %
 % where `state` is the current state array. The state is a PostScript
 % array with three elements:
@@ -559,7 +559,7 @@ sc3 R tp.mobt mobt.apply /2Hsc1 cdef
     end
 } bind def
 
-% [x{0} ... x{n-1}] s -->  [x{0} * s ... x{n-1} * s]
+% [x{0} ... x{n-1}] s  -->  [x{0} * s ... x{n-1} * s]
 /vscale {
     1 dict begin
         /s exch def

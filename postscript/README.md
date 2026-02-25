@@ -97,7 +97,7 @@ fit for PostScript.
 4. More generally, any fractal rendering algorithm that needs to know what a pixel is.
    The alternate algorithm mentioned near the end of the top-level README would be
    another good example of that, and thus if I decided to pursue that, I most likely
-   wouldn't do it PostScript.
+   wouldn't do it in PostScript.
 
 In such cases, PostScript's built-in graphics facilities might not be much help
 at all.

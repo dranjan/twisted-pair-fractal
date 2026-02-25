@@ -9,56 +9,56 @@
 % outside of this file.
 /_xmark [/_xmark] def
 
-% val xpush -
+% val xpush  -->  -
 %
 % Push a value onto the auxiliary stack.
 /xpush {
     /_xstack exch [exch _xstack aload length 1 add -1 roll] def
 } bind def
 
-% xpop  =  val
+% xpop  -->  val
 %
 % Pop one value from the auxiliary stack.
 /xpop {
     [_xstack aload length 1 add 1 roll] /_xstack exch def
 } bind def
 
-% xtop  =  val
+% xtop  -->  val
 %
 % Obtain the top element of the auxiliary stack without popping.
 /xtop {
     _xstack dup length 1 sub get
 } bind def
 
-% xdrop -
+% xdrop  -->  -
 %
 % Discard the top element of the auxiliary stack.
 /xdrop {
     xpop pop
 } bind def
 
-% xclear -
+% xclear  -->  -
 %
 % Clear the auxiliary stack.
 /xclear {
     /_xstack [] def
 } bind def
 
-% xempty  =  bool
+% xempty  -->  bool
 %
 % Determine whether the auxiliary stack is empty.
 /xempty {
     _xstack length 0 eq
 } bind def
 
-% xmark -
+% xmark  -->  -
 %
 % Push a marker onto the stack.
 /xmark {
     _xmark xpush
 } bind def
 
-% xunmark -
+% xunmark  -->  -
 %
 % If the marker is at the top of the auxiliary stack, discard it.
 % Otherwise, raise an error.
@@ -71,14 +71,14 @@
     } ifelse
 } bind def
 
-% {proc} xmarked  =  proc'
+% {proc} xmarked  -->  proc'
 %
 % Wrap any procedure with xmark/xunmark.
 /xmarked {
     [/xmark cvx 3 -1 roll /exec cvx /xunmark cvx] cvx
 } bind def
 
-% /name val setdefault -
+% /name val setdefault  -->  -
 %
 % Set /name to val, if it is not defined in userdict.
 /setdefault {
@@ -89,40 +89,40 @@
     end
 } def
 
-% array0 array1 acat  =  array'
+% array0 array1 acat  -->  array'
 %
 % Concatenate 2 arrays.
 /acat {
     [ 3 1 roll ] flatten
 } def
 
-% [array0 array1 ... ] flatten  =  array'
+% [array0 array1 ... ] flatten  -->  array'
 %
 % Flatten an array of arrays.
 /flatten {
     [ exch {aload pop} forall ]
 } def
 
-% [v_0 ... v_{n-1}] reverse  =  [v_{n-1} ... v_0]
+% [v_0 ... v_{n-1}] reverse  -->  [v_{n-1} ... v_0]
 %
 % Reverse an arbitrary array.
 /reverse {
     [exch dup dup length 1 sub -1 0 {get exch dup} for pop pop]
 } bind def
 
-% v_0 ... v_{n-1} [/name_0 ... /name_{n-1}] vdef -
+% v_0 ... v_{n-1} [/name_0 ... /name_{n-1}] vdef  --> -
 %
 % Bind multiple names in order.
 /vdef {
     reverse {exch def} forall
 } bind def
 
-% x0 y0 x1 y1 cx  =  x0*y1 - x1*y0
+% x0 y0 x1 y1 cx  -->  x0*y1 - x1*y0
 /cx {
     4 1 roll mul 3 1 roll mul exch sub
 } bind def
 
-% x0 y0 x1 y1 x2 y2 triangle-area  =  area
+% x0 y0 x1 y1 x2 y2 triangle-area  -->  area
 %
 % Compute the signed area of a triangle.
 /triangle-area {
@@ -132,7 +132,7 @@
     end
 } bind def
 
-% x1 y1 x2 y2 x3 y3 x0 y0 curve-area-delta  =  area
+% x1 y1 x2 y2 x3 y3 x0 y0 curve-area-delta  -->  area
 %
 % Compute the signed area of a curve segment with an implied
 % closepath.
@@ -151,7 +151,7 @@
     end
 } bind def
 
-% - area -
+% - area  -->  -
 %
 % Compute the signed area enclosed by the current path. Note that non-simple
 % regions are allowed and may give surprising results (e.g., with overlaps
@@ -190,20 +190,20 @@
     end
 } bind def
 
-% a{0} ... a{n-1} n dump!  =  -
+% a{0} ... a{n-1} n dump!  -->  -
 /dump! {
     array astore ==
 } bind def
 
-% a{0} ... a{n-1} n dump  =  a{0} ... a{n-1}
+% a{0} ... a{n-1} n dump  -->  a{0} ... a{n-1}
 /dump {
     [exch dup /copy cvx exch] cvx exec dump!
 } bind def
 
-% x y max  =  max(x, y)
+% x y max  -->  max(x, y)
 /max { 2 copy lt {exch} if pop } bind def
 
-% x y min  =  min(x, y)
+% x y min  -->  min(x, y)
 /min { 2 copy gt {exch} if pop } bind def
 
 % x xmin xmax clamp  -->  max(min(x, xmax), xmin)
