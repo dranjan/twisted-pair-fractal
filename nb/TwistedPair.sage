@@ -6,9 +6,9 @@
 #       extension: .sage
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.6
+#       jupytext_version: 1.18.1
 #   kernelspec:
-#     display_name: SageMath 10.6
+#     display_name: SageMath 10.8
 #     language: sage
 #     name: sagemath
 # ---
